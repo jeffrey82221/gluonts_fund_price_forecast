@@ -1,12 +1,24 @@
-import os
 from datetime import datetime
 import pandas as pd
 from gluonts.dataset.common import ListDataset
-from gluonts.model import prophet
 
 NAV_DIR = '../fund_price_crawler/nav'
 
-def load_raw_nav_table(file_path):
+def load_dataset(file_path):
+    """
+    Load a nav csv and convert it to gluonts ListDataset.
+
+    Args:
+        - file_path: the path of the nav csv file
+    Returns:
+        - dataset: the ListDataset
+    """
+    nav_table = __load_raw_nav_table(file_path)
+    nav_table = __fill_nav_dataframe(nav_table)
+    dataset = __convert_to_list_dataset(nav_table)
+    return dataset
+
+def __load_raw_nav_table(file_path):
     """
     Load the NAV csv into pandas DataFrame 
 
@@ -21,7 +33,7 @@ def load_raw_nav_table(file_path):
     nav_table.drop_duplicates(inplace=True)
     return nav_table
 
-def fill_nav_dataframe(raw_nav_table):
+def __fill_nav_dataframe(raw_nav_table):
     """
     
     Fill in the nav values of holidays via linear interpolation. 
@@ -40,27 +52,76 @@ def fill_nav_dataframe(raw_nav_table):
     everyday_nav_table.interpolate(inplace=True)
     return everyday_nav_table
 
-def load_gluonts_list_dataset(file_path):
+def __convert_to_list_dataset(nav_table):
     """
-    Load a nav csv and convert it to gluonts ListDataset.
+    Convert single nav_table (DataFrame) to GluonTS ListDataset.
 
     Args:
-        - file_path: the path of the nav csv file
+        - nav_table: the pandas table. 
     Returns:
-        - data: the ListDataset
+        - dataset: the ListDataset.
     """
-    nav_table = load_raw_nav_table(file_path)
-    nav_table = fill_nav_dataframe(nav_table)
-    data = ListDataset([
+    dataset = ListDataset([
         {"start": nav_table.index[0],
         "target": nav_table.value}],freq="D")
-    return data
+    return dataset
+
+def load_split_dataset(file_path, split_date):
+    """
+    Load CSV and split it into a training ListDataset
+        and a testing ListDataset, according to split_date. 
+
+    Args: 
+        - file_path:  the path of the nav csv file
+        - split_date: (datetime.datetime) 
+    
+    Returns: 
+        - train: the training ListDataset
+        - test:  the testing ListDataset
+    """
+    nav_table = __load_raw_nav_table(file_path)
+    nav_table = __fill_nav_dataframe(nav_table)
+    train_nav_table, test_nav_table = __split_nav_dataframe(
+        nav_table, split_date)
+    train, test = (
+        __convert_to_list_dataset(train_nav_table), 
+        __convert_to_list_dataset(test_nav_table)
+    )
+    return train, test
+
+
+def __split_nav_dataframe(nav_table, split_date):
+    """
+    Split NAV pandas DataFrame into 
+    a training and a testing DataFrame according to a split_date, 
+    such that split_date becomes the last date of the 
+    training DataFrame.
+    
+    Args:
+        - split_date (datetime.datetime) 
+    Returns: 
+        - train: the training DataFrame
+        - test:  the testing DataFrame
+    
+    """
+    assert split_date in nav_table.index.tolist()
+    split_index = nav_table.index.tolist().index(split_date)
+    train = nav_table.iloc[:split_index+1]
+    test = nav_table.iloc[split_index+1:]
+    return train, test
+
+
+
+
+
 
 if __name__ == '__main__':
+    import os
     nav_files = os.listdir(NAV_DIR)
     file_path = os.path.join(NAV_DIR, nav_files[0])
     print(f"file_path: {file_path}")
-    dataset = load_gluonts_list_dataset(file_path)    
+    dataset = load_dataset(file_path)   
+    from gluonts.model import prophet
     predictor = prophet.ProphetPredictor(
         freq="D", prediction_length=1)
     predictions = predictor.predict(dataset)    
