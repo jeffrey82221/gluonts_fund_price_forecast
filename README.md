@@ -8,14 +8,14 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [X] Process the time series so that the missing prices of holiday can be interpolate.
     - [X] Connect the time series to the Gluonts Model. 
     - [X] Plot the predicted trends (probalistically) from the trained model. 
-- [ ] Enhance Evaluation: 
+- [X] Enhance Evaluation: 
     - [X] Allow splitting of training, validation, testing time series. 
     - [X] Allow evaluation of prediction using RMSE on testing data. 
-    - [ ] Allow Backtesting (using Off-the-shielf module of Gluonts). 
+    - [X] Allow Backtesting (using Off-the-shielf module of Gluonts). 
         - [X] Parallelize BackTesting
             - [X] split_date generator
             - [X] split dataset -> prediction -> evaluation
-        - [X] Try sharing of NAV Table Between Process
+        - [-] Try sharing of NAV Table Between Process
 - [ ] Adapt the Model to the Deep Trainable Models
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund
