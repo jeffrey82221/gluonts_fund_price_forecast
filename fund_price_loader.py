@@ -1,6 +1,8 @@
 from datetime import datetime
 import pandas as pd
 from gluonts.dataset.common import ListDataset
+from joblib import Memory
+memory = Memory('./cachedir', verbose=0)
 
 NAV_DIR = '../fund_price_crawler/nav'
 
@@ -18,6 +20,7 @@ def load_dataset(file_path):
     dataset = __convert_to_list_dataset(nav_table)
     return dataset
 
+@memory.cache
 def load_nav_table(file_path):
     """
     Load the NAV csv into pandas DataFrame and fill the missing 
@@ -62,10 +65,12 @@ def __fill_nav_dataframe(raw_nav_table):
     raw_nav_table.date = raw_nav_table.date.map(lambda x: datetime.strptime(x, '%Y/%m/%d'))
     idx = pd.date_range(start=raw_nav_table.date.min(),end=raw_nav_table.date.max(), freq="D")
     everyday_table = pd.DataFrame(idx, columns=['date'])
-    everyday_nav_table = everyday_table.merge(raw_nav_table, how='left', on='date')
-    everyday_nav_table.set_index('date', inplace=True)
-    everyday_nav_table.interpolate(inplace=True)
-    return everyday_nav_table
+    nav_table = everyday_table.merge(raw_nav_table, how='left', on='date')
+    nav_table.set_index('date', inplace=True)
+    nav_table.interpolate(inplace=True)
+    nav_table = nav_table.reset_index().drop_duplicates(subset='date').set_index('date')
+    assert len(nav_table) == len(set(nav_table.index.tolist()))
+    return nav_table
 
 def __convert_to_list_dataset(nav_table):
     """

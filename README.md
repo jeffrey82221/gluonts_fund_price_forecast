@@ -15,7 +15,7 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [X] Parallelize BackTesting
             - [X] split_date generator
             - [X] split dataset -> prediction -> evaluation
-        - [ ] Allow Sharing of NAV Table Between Process
+        - [X] Try sharing of NAV Table Between Process
 - [ ] Adapt the Model to the Deep Trainable Models
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund

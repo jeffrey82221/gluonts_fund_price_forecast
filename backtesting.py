@@ -5,6 +5,7 @@ XXX:
 - [X] No Parallel Processing: 11.175463s
 - [X] Load Nav Table on Every Process: 08.104964s
 - [X] Load Nav Table in the Beginning and Pass to each Process: 05.002175s
+- [ ] Using Memory Cache to store processed NAV TABLE: 05.435248
 """
 from utils import blockPrinting
 import matplotlib.pylab as plt
@@ -15,12 +16,34 @@ from fund_price_loader import split_nav_dataframe_by_end_dates, load_nav_table, 
 from functools import partial
 from billiard import cpu_count
 from billiard.pool import Pool
+from multiprocessing.managers import SharedMemoryManager
 from datetime import timedelta
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
 CPU_COUNT = cpu_count()
+
+class Transfer:
+    @staticmethod
+    def to_shm(smm, nav_table):
+        start_end_date = smm.ShareableList([str(nav_table.index.min()), str(nav_table.index.max())])
+        values = smm.ShareableList(nav_table.value.tolist())
+        return start_end_date, values
+    
+    @staticmethod
+    def to_process(start_end_date, values): 
+        __string_to_date = lambda x: datetime.strptime(x.split(' ')[0], '%Y-%m-%d')
+        start = start_end_date[0]
+        end = start_end_date[1]
+        idx = pd.date_range(start=__string_to_date(start),
+                            end=__string_to_date(end), 
+                            freq="D")
+        nav_table = pd.DataFrame(idx, columns=['date'])
+        nav_table['value'] = list(values)
+        nav_table.set_index('date', inplace=True)
+        return nav_table
+
 @blockPrinting
 def parallel_run(file_path, predictor, duration, period, verbose=False):
     nav_table = load_nav_table(file_path)
@@ -29,6 +52,8 @@ def parallel_run(file_path, predictor, duration, period, verbose=False):
     split_date_gen = __split_date_generator(
         start_date, end_date, duration=duration, period=period)
     train_ends = list(map(lambda x: x[0], split_date_gen))
+    # with SharedMemoryManager() as smm:
+    #     nav_table = Transfer.to_shm(smm, nav_table)
     with Pool(CPU_COUNT) as p:
         split_date_gen = __split_date_generator(
             start_date, end_date, duration=duration, period=period)
@@ -86,6 +111,8 @@ def __split(x, nav_table=None, file_path=None):
     if nav_table is None:
         assert file_path is not None
         nav_table = load_nav_table(file_path)
+    # else:
+    #     nav_table = Transfer.to_process(*nav_table)
     return split_nav_dataframe_by_end_dates(nav_table, train_end, test_end)
 
 
