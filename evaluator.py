@@ -1,5 +1,6 @@
 import warnings
 warnings.filterwarnings('ignore')
+from utils import blockPrinting
 
 from gluonts.model import prophet
 from gluonts.dataset.util import to_pandas
@@ -8,6 +9,7 @@ import matplotlib.pylab as plt
 from sklearn.metrics import mean_squared_error
 from math import sqrt
 
+@blockPrinting
 def evaluation(predictor, train, test, verbose=False):
     """
     Calculate the performance metrics of a predictor
