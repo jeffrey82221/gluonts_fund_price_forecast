@@ -26,7 +26,7 @@ def evaluation(predictor, train, test, verbose=False):
         freq="D", 
         prediction_length=list(test)[0]['target'].shape[0]
     )
-    predictions = predictor.predict(train)
+    predictions = list(predictor.predict(train))
     if verbose:
         for entry, forecast in zip(train, predictions):
             to_pandas(entry).plot(linewidth=2)

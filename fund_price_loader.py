@@ -18,6 +18,21 @@ def load_dataset(file_path):
     dataset = __convert_to_list_dataset(nav_table)
     return dataset
 
+def load_nav_table(file_path):
+    """
+    Load the NAV csv into pandas DataFrame and fill the missing 
+    values.
+
+    Args:
+        - file_path: the path of the nav csv file
+    Returns: 
+        - nav_table: a pandas DataFrame of nav values without missing values 
+            of holiday. 
+    """
+    nav_table = __load_raw_nav_table(file_path)
+    nav_table = __fill_nav_dataframe(nav_table)
+    return nav_table
+
 def __load_raw_nav_table(file_path):
     """
     Load the NAV csv into pandas DataFrame 
@@ -89,6 +104,32 @@ def load_split_dataset(file_path, split_date):
     )
     return train, test
 
+def split_nav_dataframe_by_end_dates(nav_table, train_end, test_end):
+    """
+    Extract training and testing dataset from nav_table according to 
+    the ending date of training and testing dataset. 
+    
+    Args: 
+        - nav_table: (pandas.DataFrame) nav table 
+        - train_end: (datetime) end of training 
+        - test_end: (datetime) end of testing 
+    
+    Returns:
+        - train: (ListDataset)
+        - test: (ListDataset)
+        
+    """
+    dataset, _ = __split_nav_dataframe(
+        nav_table, test_end
+    )
+    train, test = __split_nav_dataframe(
+        dataset, train_end
+    )
+    train, test = (
+        __convert_to_list_dataset(train), 
+        __convert_to_list_dataset(test)
+    )
+    return train, test
 
 def __split_nav_dataframe(nav_table, split_date):
     """

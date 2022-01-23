@@ -11,7 +11,11 @@ This project aims to predict the future price of mutual fund via GluonTS package
 - [ ] Enhance Evaluation: 
     - [X] Allow splitting of training, validation, testing time series. 
     - [X] Allow evaluation of prediction using RMSE on testing data. 
-    - [ ] Allow backtesting (using Off-the-shield module of Gluonts). 
+    - [ ] Allow Backtesting (using Off-the-shielf module of Gluonts). 
+        - [X] Parallelize BackTesting
+            - [X] split_date generator
+            - [X] split dataset -> prediction -> evaluation
+        - [ ] Allow Sharing of NAV Table Between Process
 - [ ] Adapt the Model to the Deep Trainable Models
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund
