@@ -7,14 +7,14 @@ XXX:
 - [X] Load Nav Table in the Beginning and Pass to each Process: 05.002175s
 - [-] Using Memory Cache to store processed NAV TABLE: 05.435248
 - [-] Using pd_share for shared-memory pandas (raising too many error)
-- [ ] Using list_dataset_share for sharing ListDataset 
+- [X] Using list_dataset_share for sharing ListDataset: 05.70407
     - [X] check if the new ListDataset with shared array work (X)
         - [X] Build a Sharable ListDataset
         - [X] Build a Splitter for SharableListDataset
     - [X] convert to sharable list dataset after load_nav_table
     - [X] alter __split_nav_dataframe -> __split_nav_list_dataset such that it can split SharableListDataset 
     - [X] split_nav_dataframe_by_end_dates -> split_nav_list_dataset_by_end_dates
-    - [?] Testing the execution time of using SharableListDataset
+    - [X] Testing the execution time of using SharableListDataset
 
 
 """
