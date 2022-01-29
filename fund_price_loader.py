@@ -2,6 +2,9 @@ from datetime import datetime
 import pandas as pd
 from gluonts.dataset.common import ListDataset
 from joblib import Memory
+from datetime import timedelta
+from sharable_splitter import Splitter
+
 memory = Memory('./cachedir', verbose=0)
 
 NAV_DIR = '../fund_price_crawler/nav'
@@ -108,6 +111,28 @@ def load_split_dataset(file_path, split_date):
         __convert_to_list_dataset(test_nav_table)
     )
     return train, test
+
+def split_nav_list_dataset_by_end_dates(nav_dataset, train_end, test_end):
+    """
+    Extract training and testing dataset from nav_dataset according to 
+    the ending date of training and testing dataset. 
+    
+    Args: 
+        - nav_table: (sharable_dataset.SharableListDataset) nav_dataset 
+        - train_end: (datetime) end of training 
+        - test_end: (datetime) end of testing 
+    Returns:
+        - train: (ListDataset)
+        - test: (ListDataset)
+    """
+    dataset, _ = Splitter(test_end + timedelta(days=1)).split(nav_dataset)
+    train, test = Splitter(train_end + timedelta(days=1)).split(dataset)
+    train, test = (
+        train.to_local(), 
+        test.to_local()
+    )
+    return train, test
+
 
 def split_nav_dataframe_by_end_dates(nav_table, train_end, test_end):
     """
