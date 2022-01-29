@@ -5,7 +5,8 @@ XXX:
 - [X] No Parallel Processing: 11.175463s
 - [X] Load Nav Table on Every Process: 08.104964s
 - [X] Load Nav Table in the Beginning and Pass to each Process: 05.002175s
-- [ ] Using Memory Cache to store processed NAV TABLE: 05.435248
+- [-] Using Memory Cache to store processed NAV TABLE: 05.435248
+- [-] Using pd_share for shared-memory pandas (raising too many error)
 """
 from utils import blockPrinting
 import matplotlib.pylab as plt
@@ -16,11 +17,12 @@ from fund_price_loader import split_nav_dataframe_by_end_dates, load_nav_table, 
 from functools import partial
 from billiard import cpu_count
 from billiard.pool import Pool
-from multiprocessing.managers import SharedMemoryManager
+from pd_share import SharedDataFrame
 from datetime import timedelta
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
+import logging 
 
 CPU_COUNT = cpu_count()
 
@@ -44,7 +46,11 @@ class Transfer:
         nav_table.set_index('date', inplace=True)
         return nav_table
 
-@blockPrinting
+def on_process_exit(pid, exitcode):
+    print(f'[on_process_exit] {pid}, {exitcode}')
+    if exitcode == 1:
+        raise ValueError(f'Error in process {pid}')
+# @blockPrinting
 def parallel_run(file_path, predictor, duration, period, verbose=False):
     nav_table = load_nav_table(file_path)
     start_date = nav_table.index.min()
@@ -53,7 +59,7 @@ def parallel_run(file_path, predictor, duration, period, verbose=False):
         start_date, end_date, duration=duration, period=period)
     train_ends = list(map(lambda x: x[0], split_date_gen))
     # with SharedMemoryManager() as smm:
-    #     nav_table = Transfer.to_shm(smm, nav_table)
+    # nav_table = SharedDataFrame(nav_table)
     with Pool(CPU_COUNT) as p:
         split_date_gen = __split_date_generator(
             start_date, end_date, duration=duration, period=period)
@@ -107,13 +113,18 @@ def __split_date_generator(start_date, end_date, duration=7, period=1):
 
 
 def __split(x, nav_table=None, file_path=None):
-    train_end, test_end = x
-    if nav_table is None:
-        assert file_path is not None
-        nav_table = load_nav_table(file_path)
-    # else:
-    #     nav_table = Transfer.to_process(*nav_table)
-    return split_nav_dataframe_by_end_dates(nav_table, train_end, test_end)
+    try:
+        train_end, test_end = x
+        if nav_table is None:
+            assert file_path is not None
+            nav_table = load_nav_table(file_path)
+        # else:
+        #     nav_table = Transfer.to_process(*nav_table)
+        return split_nav_dataframe_by_end_dates(nav_table, train_end, test_end)
+    except BaseException as e:
+        print(f'Error in __split: {e}')
+        logging.exception(str(e))
+        raise ValueError('Error in __split')
 
 
 def __eval(x, predictor=None):
