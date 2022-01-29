@@ -8,10 +8,14 @@ XXX:
 - [-] Using Memory Cache to store processed NAV TABLE: 05.435248
 - [-] Using pd_share for shared-memory pandas (raising too many error)
 - [ ] Using list_dataset_share for sharing ListDataset 
-    - [ ] convert to list dataset after load_nav_table
-    - [ ] alter __split_nav_dataframe -> __split_nav_list_dataset such that it can split ListDataset 
+    - [X] check if the new ListDataset with shared array work (X)
+        - [X] Build a Sharable ListDataset
+        - [X] Build a Splitter for SharableListDataset
+    - [ ] convert to sharable list dataset after load_nav_table
+    - [ ] alter __split_nav_dataframe -> __split_nav_list_dataset such that it can split SharableListDataset 
         - [ ] split_nav_dataframe_by_end_dates -> split_nav_list_dataset_by_end_dates
-    - [ ] check if the new ListDataset with shared array work 
+
+
 """
 from utils import blockPrinting
 import matplotlib.pylab as plt
