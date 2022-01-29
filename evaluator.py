@@ -9,6 +9,8 @@ import matplotlib.pylab as plt
 from sklearn.metrics import mean_squared_error
 from math import sqrt
 
+from sharable_dataset import SharableListDataset
+
 @blockPrinting
 def evaluation(predictor, train, test, verbose=False):
     """
@@ -22,6 +24,10 @@ def evaluation(predictor, train, test, verbose=False):
     Returns: 
         - rms: Root Mean Squared Error between prediction and ground truth. 
     """
+    if isinstance(train, SharableListDataset):
+        train = train.to_local()
+    if isinstance(test, SharableListDataset):
+        test = test.to_local()
     predictor = predictor(
         freq="D", 
         prediction_length=list(test)[0]['target'].shape[0]

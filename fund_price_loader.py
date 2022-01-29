@@ -127,10 +127,6 @@ def split_nav_list_dataset_by_end_dates(nav_dataset, train_end, test_end):
     """
     dataset, _ = Splitter(test_end + timedelta(days=1)).split(nav_dataset)
     train, test = Splitter(train_end + timedelta(days=1)).split(dataset)
-    train, test = (
-        train.to_local(), 
-        test.to_local()
-    )
     return train, test
 
 
