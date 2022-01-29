@@ -27,3 +27,5 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [ ] Parallel loading and processing of multiple time series
     - [ ] Consider multivariate time series Model
     - [ ] Plot the predicted trends
+- [ ] Consider Binance Dataset 
+- [ ] Adoption of Real-time Binance Price 
