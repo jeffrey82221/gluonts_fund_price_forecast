@@ -23,6 +23,12 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [ ] Earning of fund in a time period: e.g., (nav tomorrow - nav today) / nav today. (parameter: time_period)
         - [ ] Standard deviation of earning in a time periods. (parameter: earning_time_period, std_time_period) 
         - [ ] Original NAV curve 
+    - [ ] Find data object in gluonts for storing multiple time series
+    - [ ] Organize of technical curves of a fund into the multi-timeseries objects offered by gluonts. 
+    - [ ] Find Multi-Variate Deep Model and incorporate it into the repo. 
+- [ ] Allow comparison of backtesting results of different predictors. 
+    - [ ] comparison of overall performance
+    - [ ] comparison of performance curves on the same plot 
 - [ ] Price Prediction of Multiple Funds
     - [ ] Load multiple funds and convert to multiple time series 
     - [ ] Parallel loading and processing of multiple time series
