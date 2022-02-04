@@ -62,7 +62,8 @@ def on_process_exit(pid, exitcode):
     if exitcode == 1:
         raise ValueError(f'Error in process {pid}')
 # @blockPrinting
-def parallel_run(file_path, predictor, duration, period, verbose=False):
+def parallel_run(file_path, duration, period, predictor=None, estimator=None, verbose=False):
+    assert (predictor is not None) or (estimator is not None)
     nav_table = load_nav_table(file_path)
     start_date = nav_table.index.min()
     end_date = nav_table.index.max()
@@ -86,7 +87,8 @@ def parallel_run(file_path, predictor, duration, period, verbose=False):
         ), split_date_gen)
         rmse_gen = p.imap(partial(
             __eval,
-            predictor=predictor
+            predictor=predictor,
+            estimator=estimator
         ), train_test_gen)
         rmses = list(rmse_gen)
     if verbose:
@@ -143,9 +145,16 @@ def __split(x, nav_table=None, file_path=None):
         raise ValueError('Error in __split')
 
 
-def __eval(x, predictor=None):
+def __eval(x, predictor=None, estimator=None):
+    if predictor is None:
+        assert estimator is not None 
+    if estimator is None:
+        assert predictor is not None
     train, test = x
-    return evaluation(predictor, train, test, verbose=False)
+    return evaluation(train, test, 
+        predictor=predictor, 
+        estimator=estimator, 
+        verbose=False)
 
 
 if __name__ == '__main__':
@@ -154,6 +163,13 @@ if __name__ == '__main__':
     from fund_price_loader import NAV_DIR
     nav_files = os.listdir(NAV_DIR)
     file_path = os.path.join(NAV_DIR, nav_files[800])
+    
     from gluonts.model import prophet
-    ans = parallel_run(file_path, prophet.ProphetPredictor, 14, 70)
+    ans = parallel_run(file_path, 14, 70, 
+        predictor=prophet.ProphetPredictor)
+    """
+    from gluonts.model import deepar
+    ans = parallel_run(file_path, 14, 70, 
+        estimator=deepar.DeepAREstimator)
+    """
     print("Execution Time:", datetime.now() - begin_time)

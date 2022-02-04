@@ -2,8 +2,8 @@ import warnings
 warnings.filterwarnings('ignore')
 from utils import blockPrinting
 
-from gluonts.model import prophet
 from gluonts.dataset.util import to_pandas
+
 
 import matplotlib.pylab as plt
 from sklearn.metrics import mean_squared_error
@@ -12,7 +12,7 @@ from math import sqrt
 from sharable_dataset import SharableListDataset
 
 @blockPrinting
-def evaluation(predictor, train, test, verbose=False):
+def evaluation(train, test, predictor=None, estimator=None, verbose=False):
     """
     Calculate the performance metrics of a predictor
     on the testing data. 
@@ -28,10 +28,22 @@ def evaluation(predictor, train, test, verbose=False):
         train = train.to_local()
     if isinstance(test, SharableListDataset):
         test = test.to_local()
-    predictor = predictor(
-        freq="D", 
-        prediction_length=list(test)[0]['target'].shape[0]
-    )
+    if predictor is not None:
+        assert estimator is None
+        predictor = predictor(
+            freq="D", 
+            prediction_length=list(test)[0]['target'].shape[0]
+        )
+    else:
+        assert (predictor is None) and (estimator is not None)
+        from gluonts.mx.trainer import Trainer
+        trainer = Trainer(epochs=10)
+        estimator = estimator(
+            freq="D", 
+            prediction_length=list(test)[0]['target'].shape[0], 
+            trainer=trainer
+        )
+        predictor = estimator.train(training_data=train)
     predictions = list(predictor.predict(train))
     if verbose:
         for entry, forecast in zip(train, predictions):
