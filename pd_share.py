@@ -7,20 +7,23 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime
 
 
 class CustomizedSharedArray:
-    def __init__(self, array, callback=lambda x:x):
+    def __init__(self, array, callback=lambda x: x):
         fp = sharedmem.empty(array.shape, dtype=array.dtype)
         fp[:] = array[:]
         self.__fp = fp
         self.__callback = callback
         self.dtype = array.dtype
         self.shape = array.shape
+
     def tolist(self):
         return self.__callback(self.__fp.tolist())
 
     def __getitem__(self, slice):
         return self.__fp[slice]
+
     def __del__(self):
         del self.dtype, self.shape, self.__fp, self.__callback
+
 
 class iLocIndexer:
     def __init__(self, shared_df):
@@ -28,28 +31,31 @@ class iLocIndexer:
 
     def __getitem__(self, slice):
         """
-        Args: 
+        Args:
             - slice: slice object
-        Returns: 
+        Returns:
             - a new SharedDataFrame
         """
         new_shared_df = SharedDataFrame()
         new_shared_df.set_content(
-            self.__shared_df.columns, 
+            self.__shared_df.columns,
             self.__shared_df.index[slice],
-            dict([(col, self.__shared_df[col][slice]) for col in self.__shared_df.columns.tolist()])
-            )
+            dict([(col, self.__shared_df[col][slice])
+                 for col in self.__shared_df.columns.tolist()])
+        )
         return new_shared_df
+
     def __del__(self):
         del self.__shared_df
+
 
 class SharedDataFrame:
     def __init__(self, dataframe=None):
         self.__values = dict()
         if dataframe is not None:
             self.set_content(
-                dataframe.columns, 
-                dataframe.index, 
+                dataframe.columns,
+                dataframe.index,
                 dict([(col, dataframe[col]) for col in dataframe.columns])
             )
 
@@ -65,7 +71,6 @@ class SharedDataFrame:
         else:
             self.__cols = SharedDataFrame.__to_shared(columns)
 
-    
     def __set_index(self, index):
         if isinstance(index, sharedmem.sharedmem.anonymousmemmap):
             self.__index = index
@@ -77,15 +82,15 @@ class SharedDataFrame:
             self.__values[col] = col_values
         else:
             self.__values[col] = SharedDataFrame.__to_shared(col_values)
-            
+
     @property
     def iloc(self):
         return iLocIndexer(self)
-    
+
     @staticmethod
     def __to_shared(array):
         if is_datetime(array.dtype):
-            return CustomizedSharedArray(array, callback = pd.to_datetime)
+            return CustomizedSharedArray(array, callback=pd.to_datetime)
         else:
             fp = sharedmem.empty(array.shape, dtype=array.dtype)
             fp[:] = array[:]
@@ -93,9 +98,6 @@ class SharedDataFrame:
 
     def __getitem__(self, col):
         return self.__values[col]
-
-    
-
 
     @property
     def index(self):
@@ -117,25 +119,26 @@ class SharedDataFrame:
         del self.__cols
         del self.__index
 
+
 if __name__ == '__main__':
     data = [['Y', 'N', 'N', 'N', 'N', 'N', 'N', 1],
-             ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 1],
-             ['N', 'N', 'Y', 'N', 'N', 'N', 'N', 1],
-             ['N', 'N', 'N', 'Y', 'N', 'N', 'N', 1],
-             ['N', 'N', 'N', 'N', 'Y', 'N', 'N', 1],
-             ['N', 'N', 'N', 'N', 'N', 'Y', 'N', 2],
-             ['N', 'N', 'N', 'N', 'N', 'N', 'Y', 2],
-             ['N', 'N', 'N', 'N', 'N', 'N', 'N', 3],
-             ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 1],
-             ['N', 'N', 'N', 'N', 'Y', 'N', 'Y', 1]]
+            ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 1],
+            ['N', 'N', 'Y', 'N', 'N', 'N', 'N', 1],
+            ['N', 'N', 'N', 'Y', 'N', 'N', 'N', 1],
+            ['N', 'N', 'N', 'N', 'Y', 'N', 'N', 1],
+            ['N', 'N', 'N', 'N', 'N', 'Y', 'N', 2],
+            ['N', 'N', 'N', 'N', 'N', 'N', 'Y', 2],
+            ['N', 'N', 'N', 'N', 'N', 'N', 'N', 3],
+            ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 1],
+            ['N', 'N', 'N', 'N', 'Y', 'N', 'Y', 1]]
     df = pd.DataFrame(data=data, columns=['travel_card',
-                                            'five_profession_card',
-                                            'world_card',
-                                            'wm_cust',
-                                            'gov_employee',
-                                            'military_police_firefighters',
-                                            'salary_ind',
-                                            'output'])
+                                          'five_profession_card',
+                                          'world_card',
+                                          'wm_cust',
+                                          'gov_employee',
+                                          'military_police_firefighters',
+                                          'salary_ind',
+                                          'output'])
     print('Before Sharing')
     print(df)
     shared_df = SharedDataFrame(df)
@@ -151,6 +154,7 @@ if __name__ == '__main__':
     print(shared_df['output'][2:6])
     print(shared_df.iloc[2:6]['output'])
     assert all(shared_df['output'][2:6] == shared_df.iloc[2:6]['output'])
-    assert all(shared_df['world_card'][2:6] == shared_df.iloc[2:6]['world_card'])
-    assert all(shared_df['five_profession_card'][2:6] == shared_df.iloc[2:6]['five_profession_card'])
-    
+    assert all(shared_df['world_card'][2:6] ==
+               shared_df.iloc[2:6]['world_card'])
+    assert all(shared_df['five_profession_card'][2:6] ==
+               shared_df.iloc[2:6]['five_profession_card'])

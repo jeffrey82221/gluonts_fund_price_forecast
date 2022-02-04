@@ -12,13 +12,14 @@ XXX:
         - [X] Build a Sharable ListDataset
         - [X] Build a Splitter for SharableListDataset
     - [X] convert to sharable list dataset after load_nav_table
-    - [X] alter __split_nav_dataframe -> __split_nav_list_dataset such that it can split SharableListDataset 
+    - [X] alter __split_nav_dataframe -> __split_nav_list_dataset such that it can split SharableListDataset
     - [X] split_nav_dataframe_by_end_dates -> split_nav_list_dataset_by_end_dates
     - [X] Testing the execution time of using SharableListDataset
-- [X] monitor time for multiprocessing with pytorch trainable models 
+- [X] monitor time for multiprocessing with pytorch trainable models
     - [X] Using multiprocess (30.089s)
     - [X] Using single process (86.263s)
 """
+import logging
 from utils import blockPrinting
 import matplotlib.pylab as plt
 from gluonts.dataset.util import to_pandas
@@ -34,37 +35,43 @@ from datetime import timedelta
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
-import logging 
 
 CPU_COUNT = cpu_count()
 VERBOSE = False
+
+
 class Transfer:
     @staticmethod
     def to_shm(smm, nav_table):
-        start_end_date = smm.ShareableList([str(nav_table.index.min()), str(nav_table.index.max())])
+        start_end_date = smm.ShareableList(
+            [str(nav_table.index.min()), str(nav_table.index.max())])
         values = smm.ShareableList(nav_table.value.tolist())
         return start_end_date, values
-    
+
     @staticmethod
-    def to_process(start_end_date, values): 
-        __string_to_date = lambda x: datetime.strptime(x.split(' ')[0], '%Y-%m-%d')
+    def to_process(start_end_date, values):
+        def __string_to_date(x): return datetime.strptime(
+            x.split(' ')[0], '%Y-%m-%d')
         start = start_end_date[0]
         end = start_end_date[1]
         idx = pd.date_range(start=__string_to_date(start),
-                            end=__string_to_date(end), 
+                            end=__string_to_date(end),
                             freq="D")
         nav_table = pd.DataFrame(idx, columns=['date'])
         nav_table['value'] = list(values)
         nav_table.set_index('date', inplace=True)
         return nav_table
 
+
 def on_process_exit(pid, exitcode):
     print(f'[on_process_exit] {pid}, {exitcode}')
     if exitcode == 1:
         raise ValueError(f'Error in process {pid}')
 
+
 @blockPrinting
-def parallel_run(file_path, duration, period, predictor=None, estimator=None, verbose=VERBOSE, multiprocess=True):
+def parallel_run(file_path, duration, period, predictor=None,
+                 estimator=None, verbose=VERBOSE, multiprocess=True):
     """
     Args:
         - file_path: the path of the csv storing the nav records of a fund
@@ -77,6 +84,7 @@ def parallel_run(file_path, duration, period, predictor=None, estimator=None, ve
     nav_table = load_nav_table(file_path)
     start_date = nav_table.index.min()
     end_date = nav_table.index.max()
+
     def get_split_date_gen():
         """
         The generator yeilds:
@@ -98,9 +106,9 @@ def parallel_run(file_path, duration, period, predictor=None, estimator=None, ve
 
     train_ends = list(map(lambda x: x[0], get_split_date_gen()))
     nav_dataset = SharableListDataset(
-            nav_table.index[0],
-            nav_table.value,
-            freq='D'
+        nav_table.index[0],
+        nav_table.value,
+        freq='D'
     )
     if multiprocess:
         with Pool(CPU_COUNT) as p:
@@ -162,9 +170,9 @@ def __split_date_generator(start_date, end_date, duration=7, period=1):
 
     Note: testing dataset have dates after the training data.
     """
-    period_end_date = start_date + timedelta(days=2*duration + 1)
-    # Allow the training data to have at least `duration` days so it can support 
-    # trainable models (e.g., DeepAR). 
+    period_end_date = start_date + timedelta(days=2 * duration + 1)
+    # Allow the training data to have at least `duration` days so it can support
+    # trainable models (e.g., DeepAR).
     while period_end_date <= end_date:
         split_date = period_end_date - timedelta(days=duration)
         yield split_date, period_end_date
@@ -177,9 +185,11 @@ def __split(x, nav_table=None, file_path=None):
         if nav_table is None:
             assert file_path is not None
             nav_table = load_nav_table(file_path)
-            return split_nav_dataframe_by_end_dates(nav_table, train_end, test_end)
+            return split_nav_dataframe_by_end_dates(
+                nav_table, train_end, test_end)
         else:
-            return split_nav_list_dataset_by_end_dates(nav_table, train_end, test_end)
+            return split_nav_list_dataset_by_end_dates(
+                nav_table, train_end, test_end)
     except BaseException as e:
         print(f'Error in __split: {e}')
         logging.exception(str(e))
@@ -188,14 +198,14 @@ def __split(x, nav_table=None, file_path=None):
 
 def __eval(x, predictor=None, estimator=None):
     if predictor is None:
-        assert estimator is not None 
+        assert estimator is not None
     if estimator is None:
         assert predictor is not None
     train, test = x
-    return evaluation(train, test, 
-        predictor=predictor, 
-        estimator=estimator, 
-        verbose=False)
+    return evaluation(train, test,
+                      predictor=predictor,
+                      estimator=estimator,
+                      verbose=False)
 
 
 if __name__ == '__main__':
@@ -206,11 +216,11 @@ if __name__ == '__main__':
     file_path = os.path.join(NAV_DIR, nav_files[800])
     """
     from gluonts.model import prophet
-    ans = parallel_run(file_path, 14, 70, 
+    ans = parallel_run(file_path, 14, 70,
         predictor=prophet.ProphetPredictor, multiprocess=True)
     """
     from pts.model import deepar
-    ans = parallel_run(file_path, 14, 70, 
-        estimator=deepar.DeepAREstimator, multiprocess=True)
-    
+    ans = parallel_run(file_path, 14, 70,
+                       estimator=deepar.DeepAREstimator, multiprocess=True)
+
     print("Execution Time:", datetime.now() - begin_time)

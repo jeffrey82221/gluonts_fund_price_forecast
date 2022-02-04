@@ -1,28 +1,25 @@
+from sharable_dataset import SharableListDataset
+from math import sqrt
+from sklearn.metrics import mean_squared_error
+import matplotlib.pylab as plt
+from gluonts.dataset.util import to_pandas
+from utils import blockPrinting
 import warnings
 warnings.filterwarnings('ignore')
-from utils import blockPrinting
 
-from gluonts.dataset.util import to_pandas
-
-
-import matplotlib.pylab as plt
-from sklearn.metrics import mean_squared_error
-from math import sqrt
-
-from sharable_dataset import SharableListDataset
 
 @blockPrinting
 def evaluation(train, test, predictor=None, estimator=None, verbose=False):
     """
     Calculate the performance metrics of a predictor
-    on the testing data. 
-    
-    Args: 
+    on the testing data.
+
+    Args:
         - predictor: Gluonts Predictor - e.g., prophet.ProphetPredictor
-        - train: the training ListDataset aka. X 
+        - train: the training ListDataset aka. X
         - test:  the testing ListDataset aka. Y
-    Returns: 
-        - rms: Root Mean Squared Error between prediction and ground truth. 
+    Returns:
+        - rms: Root Mean Squared Error between prediction and ground truth.
     """
     if isinstance(train, SharableListDataset):
         train = train.to_local()
@@ -31,7 +28,7 @@ def evaluation(train, test, predictor=None, estimator=None, verbose=False):
     if predictor is not None:
         assert estimator is None
         predictor = predictor(
-            freq="D", 
+            freq="D",
             prediction_length=list(test)[0]['target'].shape[0]
         )
         print('[evaluation] predictor created!')
@@ -43,8 +40,8 @@ def evaluation(train, test, predictor=None, estimator=None, verbose=False):
         trainer = Trainer(epochs=10, device=device)
         print('[evaluation] trainer initialized!')
         estimator = estimator(
-            freq="D", 
-            prediction_length=list(test)[0]['target'].shape[0], 
+            freq="D",
+            prediction_length=list(test)[0]['target'].shape[0],
             input_size=17,
             trainer=trainer
         )
@@ -62,5 +59,3 @@ def evaluation(train, test, predictor=None, estimator=None, verbose=False):
     y_predicted = list(predictions)[0].mean
     rms = sqrt(mean_squared_error(y_actual, y_predicted))
     return rms
-
-

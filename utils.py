@@ -1,5 +1,7 @@
 import sys
 import os
+
+
 def blockPrinting(func):
     def func_wrapper(*args, **kwargs):
         # block all printing to the console
