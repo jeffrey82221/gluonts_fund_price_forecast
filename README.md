@@ -18,6 +18,11 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [-] Try sharing of NAV Table Between Process
 - [X] Adapt the Model to the Deep Trainable Models
     - [X] using pytorch version models with pytorchts package: https://github.com/zalandoresearch/pytorch-ts
+    - [ ] Adapt to all examples in pytorch-ts
+        - [ ] Implicit Quantile Network 
+        - [ ] Multivariate-Flow
+        - [ ] Time-Grad
+- [ ] Enhance evaluator.py (adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67)
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund
         - [ ] Earning of fund in a time period: e.g., (nav tomorrow - nav today) / nav today. (parameter: time_period)
