@@ -17,6 +17,7 @@ This project aims to predict the future price of mutual fund via GluonTS package
             - [X] split dataset -> prediction -> evaluation
         - [-] Try sharing of NAV Table Between Process
 - [ ] Adapt the Model to the Deep Trainable Models
+    - [ ] using pytorch version models 
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund
         - [ ] Earning of fund in a time period: e.g., (nav tomorrow - nav today) / nav today. (parameter: time_period)
@@ -29,3 +30,23 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [ ] Plot the predicted trends
 - [ ] Consider Binance Dataset 
 - [ ] Adoption of Real-time Binance Price 
+
+# Install
+
+## Build from new environment
+```
+python3 -m virtualenv env
+source env/bin/activate
+sudo pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Using Pre-installed environment
+```
+source env/bin/activate
+```
+
+# Run 
+```
+python backtesting.py
+```
