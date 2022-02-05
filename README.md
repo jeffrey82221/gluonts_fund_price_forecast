@@ -22,10 +22,9 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [X] [Implicit Quantile Network](https://github.com/jeffrey82221/gluonts_fund_price_forecast/commit/bcd759538396c91fc3556900d2f69250fdd7a581)
         - [ ] Multivariate-Flow # Next-Up
         - [ ] Time-Grad # Next-Up
-- [ ] Enhance the evaluation 
-    - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working)
-    - [ ] Allow comparison of the overall performance of different models using different metrices 
-    - [ ] Allow comparison of different models in a single plot 
+- [X] Enhance the evaluation 
+    - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
+    - [X] Allow comparison of different models in a single plot
 - [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
 - [ ] Consider MultiVariate Mode for Single Fund Prediction: 
     - [ ] Create different technical curves for each fund
@@ -41,8 +40,9 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [ ] Parallel loading and processing of multiple time series
     - [ ] Consider multivariate time series Model
     - [ ] Plot the predicted trends
-- [ ] Consider Binance Dataset 
+- [ ] Consider Binance Dataset
 - [ ] Adoption of Real-time Binance Price 
+- [ ] Allow parameter tuning for each estimator (with ray.tune)
 
 # Install
 
