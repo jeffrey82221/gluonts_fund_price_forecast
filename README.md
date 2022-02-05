@@ -19,7 +19,7 @@ This project aims to predict the future price of mutual fund via GluonTS package
 - [X] Adapt the Model in backtesting to the Deep Trainable Models
     - [X] using pytorch version models with pytorchts package: https://github.com/zalandoresearch/pytorch-ts
     - [ ] Adapt to all examples in pytorch-ts
-        - [X] Implicit Quantile Network
+        - [X] [Implicit Quantile Network](https://github.com/jeffrey82221/gluonts_fund_price_forecast/commit/bcd759538396c91fc3556900d2f69250fdd7a581)
         - [ ] Multivariate-Flow # Next-Up
         - [ ] Time-Grad # Next-Up
 - [ ] Enhance the evaluation 
