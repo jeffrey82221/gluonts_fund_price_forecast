@@ -26,24 +26,24 @@ TODO:
     - [X] fix prediction_length and context_length -> prediction_length (default)
     - [X] tune input_size -> 20
 """
+import torch
+from pts import Trainer
+from datetime import datetime
+from datetime import timedelta
+from sharable_dataset import SharableListDataset
+from billiard.pool import Pool
+from billiard import cpu_count
+from functools import partial
+from fund_price_loader import split_nav_list_dataset_by_end_dates
+from fund_price_loader import split_nav_dataframe_by_end_dates, load_nav_table, load_dataset
+from evaluator import evaluation
+import pandas as pd
+from gluonts.dataset.util import to_pandas
+import matplotlib.pylab as plt
+from utils import blockPrinting
+import logging
 import warnings
 warnings.filterwarnings('ignore')
-import logging
-from utils import blockPrinting
-import matplotlib.pylab as plt
-from gluonts.dataset.util import to_pandas
-import pandas as pd
-from evaluator import evaluation
-from fund_price_loader import split_nav_dataframe_by_end_dates, load_nav_table, load_dataset
-from fund_price_loader import split_nav_list_dataset_by_end_dates
-from functools import partial
-from billiard import cpu_count
-from billiard.pool import Pool
-from sharable_dataset import SharableListDataset
-from datetime import timedelta
-from datetime import datetime
-from pts import Trainer
-import torch
 
 CPU_COUNT = cpu_count()
 VERBOSE = True
@@ -51,30 +51,33 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class BackTestor:
-    def __init__(self, file_path, estimators, prediction_length, eval_period, metric, verbose=VERBOSE, multiprocess=True):
+    def __init__(self, file_path, estimators, prediction_length,
+                 eval_period, metric, verbose=VERBOSE, multiprocess=True):
         """
-        Args: 
+        Args:
             - file_path: the path of the csv storing the nav records of a fund
             - estimators: a dictionary storing the gluonts estimator
             - prediction_length: (number of days) length of each prediction to be evaluate against the ground truth.
             - eval_period:  (number of days) back-testing skipping interval.
-            - metric: the metric in agg_metrics to be used for measuring the performance. 
+            - metric: the metric in agg_metrics to be used for measuring the performance.
             - verbose: whether to monitor the running status
-            - multiprocess: whether using multiprocessing to speed up backtesting. 
+            - multiprocess: whether using multiprocessing to speed up backtesting.
         """
         self.__file_path = file_path
-        self.__estimators = estimators 
+        self.__estimators = estimators
         assert isinstance(self.__estimators, dict)
         self.__prediction_length = prediction_length
         self.__eval_period = eval_period
         self.__metric = metric
         self.__verbose = verbose
         self.__multiprocess = multiprocess
-        # for storing dates (at the end of training data) for each iteration of backtesting
-        self.__train_ends = None 
+        # for storing dates (at the end of training data) for each iteration of
+        # backtesting
+        self.__train_ends = None
+
     def apply(self):
         """
-        Apply estimators to parallel_runs 
+        Apply estimators to parallel_runs
         """
         self.__estimator_performances = dict()
         for estimator_name in self.__estimators:
@@ -90,11 +93,13 @@ class BackTestor:
             else:
                 self.__train_ends = train_ends
             self.__estimator_performances[estimator_name] = performances
-            print(f"Backtest Time for Estimator {estimator_name}:", datetime.now() - begin_time)
+            print(
+                f"Backtest Time for Estimator {estimator_name}:",
+                datetime.now() - begin_time)
 
     def show_result(self):
-        assert self.__train_ends is not None 
-        assert self.__estimator_performances is not None 
+        assert self.__train_ends is not None
+        assert self.__estimator_performances is not None
         performance_table = pd.DataFrame([self.__train_ends]).T
         performance_table.columns = ['date']
         print('[show_result] create pandas table with train_end dates')
@@ -110,8 +115,9 @@ class BackTestor:
         plt.xlabel('date')
         plt.show()
     # @blockPrinting
+
     def __parallel_run(self, predictor=None,
-                    estimator=None):
+                       estimator=None):
         """
         Args:
             - file_path: the path of the csv storing the nav records of a fund
@@ -119,9 +125,9 @@ class BackTestor:
             - period:   (number of days) back-testing skipping interval.
             - predictor: the gluonts predictor (for example: facebook prophet)
             - estimator: the pytorchts trainable estimator
-        Returns: 
+        Returns:
             - train_ends: dates at the end of training data for each iteration of backtesting
-            - performances: the performance calculated for each iteration of backtesting. 
+            - performances: the performance calculated for each iteration of backtesting.
         """
         assert (predictor is not None) or (estimator is not None)
         nav_table = load_nav_table(self.__file_path)
@@ -184,8 +190,8 @@ class BackTestor:
             performances = list(prf_gen)
         return train_ends, performances
 
-    
-    def __split_date_generator(self, start_date, end_date, duration=7, period=1):
+    def __split_date_generator(
+            self, start_date, end_date, duration=7, period=1):
         """
         A generator generating the dates splitting the nav_table into
         multiple training and testing for back-testing.
@@ -212,7 +218,7 @@ class BackTestor:
 
     @staticmethod
     def parallel_split(x, nav_table=None, file_path=None):
-        # NOTE: using private method name does not work with p.imap of billiard 
+        # NOTE: using private method name does not work with p.imap of billiard
         try:
             train_end, test_end = x
             if nav_table is None:
@@ -220,7 +226,7 @@ class BackTestor:
                 nav_table = load_nav_table(file_path)
                 return split_nav_dataframe_by_end_dates(
                     nav_table, train_end, test_end)
-            else:    
+            else:
                 return split_nav_list_dataset_by_end_dates(
                     nav_table, train_end, test_end)
         except BaseException as e:
@@ -230,18 +236,19 @@ class BackTestor:
 
     @staticmethod
     def parallel_eval(x, predictor=None, estimator=None, metric='MSE'):
-        # NOTE: using private method name does not work with p.imap of billiard 
+        # NOTE: using private method name does not work with p.imap of billiard
         if predictor is None:
             assert estimator is not None
         if estimator is None:
             assert predictor is not None
         train, test = x
         return evaluation(train, test,
-                        predictor=predictor,
-                        estimator=estimator,
-                        verbose=VERBOSE,
-                        metric=metric
-                        )
+                          predictor=predictor,
+                          estimator=estimator,
+                          verbose=VERBOSE,
+                          metric=metric
+                          )
+
 
 if __name__ == '__main__':
     import os
@@ -259,7 +266,7 @@ if __name__ == '__main__':
         predictor = prophet.ProphetPredictor
     """
     trainer = Trainer(epochs=10, device=DEVICE)
-    estimators = dict()    
+    estimators = dict()
     from pts.model import deepar
     estimator = deepar.DeepAREstimator(
         freq="D",
@@ -274,19 +281,25 @@ if __name__ == '__main__':
     estimator = deepar.DeepAREstimator(
         distr_output=ImplicitQuantileOutput(output_domain="Positive"),
         cell_type='GRU',
-        input_size=20, # Tuned
+        input_size=20,  # Tuned
         num_cells=64,
         num_layers=3,
         dropout_rate=0.2,
-        embedding_dimension = [4, 4, 4, 4, 16],
+        embedding_dimension=[4, 4, 4, 4, 16],
         prediction_length=prediction_length,
-        context_length=prediction_length, # Default
+        context_length=prediction_length,  # Default
         freq='D',
         scaling=True,
         trainer=trainer
     )
     estimators['iq_deep_ar'] = estimator
     print('Create Implict Quantile Deep AR Estimator')
-    testor = BackTestor(file_path, estimators, prediction_length, eval_period, metric, verbose=True)
+    testor = BackTestor(
+        file_path,
+        estimators,
+        prediction_length,
+        eval_period,
+        metric,
+        verbose=True)
     testor.apply()
     testor.show_result()
