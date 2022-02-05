@@ -23,7 +23,7 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [ ] Multivariate-Flow # Next-Up
         - [ ] Time-Grad # Next-Up
 - [ ] Enhance the evaluation 
-    - [ ] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67)
+    - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working)
     - [ ] Allow comparison of the overall performance of different models using different metrices 
     - [ ] Allow comparison of different models in a single plot 
 - [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 

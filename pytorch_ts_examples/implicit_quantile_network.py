@@ -17,12 +17,14 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 dataset = get_dataset("m5", regenerate=False)
+print(dataset.train)
+print(dataset.test)
 
 print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
 print(f"Frequency of the time series: {dataset.metadata.freq}")
 logging.info('Build Trainer')
 trainer = Trainer(device=device,
-        epochs=20,
+        epochs=1, # 20,
         learning_rate=1e-3,
         num_batches_per_epoch=120,
         batch_size=256,
@@ -63,7 +65,7 @@ agg_metrics, item_metrics = evaluator(
     iter(forecasts), 
     num_series=len(dataset.test)
 )
-
+print(f'Agg Metrics: {agg_metrics}')
 print(json.dumps(agg_metrics, indent=4))
 
 item_metrics.plot(x='MSIS', y='MASE', kind='scatter')

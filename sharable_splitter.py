@@ -4,22 +4,23 @@ from sharable_dataset import SharableListDataset
 
 
 class Splitter:
-    def __init__(self, split_date):
+    def __init__(self, split_date, with_overlap=True):
         self.__split_date = split_date
+        self.__with_overlap = with_overlap
 
     def split(self, shm_dataset):
         assert shm_dataset.freq == 'D'
         n_begin_days = (self.__split_date - shm_dataset.start).days
-        dataset1 = SharableListDataset(
+        train = SharableListDataset(
             shm_dataset.start,
             shm_dataset.target[:n_begin_days],
             freq=shm_dataset.freq)
-        dataset2 = SharableListDataset(
-            self.__split_date,
-            shm_dataset.target[n_begin_days:],
+        test = SharableListDataset(
+            shm_dataset.start if self.__with_overlap else self.__split_date,
+            shm_dataset.target if self.__with_overlap else shm_dataset.target[n_begin_days:],
             freq=shm_dataset.freq
         )
-        return dataset1, dataset2
+        return train, test
 
 
 if __name__ == '__main__':

@@ -1,15 +1,17 @@
 from sharable_dataset import SharableListDataset
-from math import sqrt
-from sklearn.metrics import mean_squared_error
-import matplotlib.pylab as plt
-from gluonts.dataset.util import to_pandas
+from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import Evaluator
+# from math import sqrt
+# from sklearn.metrics import mean_squared_error
+# import matplotlib.pylab as plt
+# from gluonts.dataset.util import to_pandas
 from utils import blockPrinting
 import warnings
 warnings.filterwarnings('ignore')
 
 
-@blockPrinting
-def evaluation(train, test, predictor=None, estimator=None, verbose=False):
+# @blockPrinting
+def evaluation(train, test, predictor=None, estimator=None, verbose=False, metric='MSE'):
     """
     Calculate the performance metrics of a predictor
     on the testing data.
@@ -31,19 +33,24 @@ def evaluation(train, test, predictor=None, estimator=None, verbose=False):
             freq="D",
             prediction_length=list(test)[0]['target'].shape[0]
         )
-        print('[evaluation] predictor created!')
     else:
         assert (predictor is None) and (estimator is not None)
         predictor = estimator.train(training_data=train, num_workers=0)
-        print('[evaluation] predictor created!')
-    predictions = list(predictor.predict(train))
+    if verbose: print('[evaluation] predictor created!');
+    forecast_it, ts_it = make_evaluation_predictions(
+        dataset=test,  # test dataset
+        predictor=predictor,  # predictor
+        num_samples=100,  # number of sample paths we want for evaluation
+    )
+    if verbose: print('[evaluation] make evaluation!');
+    forecasts = list(forecast_it)
+    tss = list(ts_it)
+    evaluator = Evaluator(num_workers=0)
+    agg_metrics, _ = evaluator(
+        iter(tss), 
+        iter(forecasts), 
+        num_series=len(test)
+    )
     if verbose:
-        for entry, forecast in zip(train, predictions):
-            to_pandas(entry).plot(linewidth=2)
-            forecast.plot(color='g', prediction_intervals=[50.0, 90.0])
-        to_pandas(list(test)[0]).plot(color='y', linewidth=2)
-        plt.plot()
-    y_actual = to_pandas(list(test)[0]).values
-    y_predicted = list(predictions)[0].mean
-    rms = sqrt(mean_squared_error(y_actual, y_predicted))
-    return rms
+        print(f'Metrics calculated in Agg_Metrics: {agg_metrics.keys()}')
+    return agg_metrics['MSE']

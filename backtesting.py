@@ -42,38 +42,10 @@ CPU_COUNT = cpu_count()
 VERBOSE = True
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class Transfer:
-    @staticmethod
-    def to_shm(smm, nav_table):
-        start_end_date = smm.ShareableList(
-            [str(nav_table.index.min()), str(nav_table.index.max())])
-        values = smm.ShareableList(nav_table.value.tolist())
-        return start_end_date, values
 
-    @staticmethod
-    def to_process(start_end_date, values):
-        def __string_to_date(x): return datetime.strptime(
-            x.split(' ')[0], '%Y-%m-%d')
-        start = start_end_date[0]
-        end = start_end_date[1]
-        idx = pd.date_range(start=__string_to_date(start),
-                            end=__string_to_date(end),
-                            freq="D")
-        nav_table = pd.DataFrame(idx, columns=['date'])
-        nav_table['value'] = list(values)
-        nav_table.set_index('date', inplace=True)
-        return nav_table
-
-
-def on_process_exit(pid, exitcode):
-    print(f'[on_process_exit] {pid}, {exitcode}')
-    if exitcode == 1:
-        raise ValueError(f'Error in process {pid}')
-
-
-@blockPrinting
+# @blockPrinting
 def parallel_run(file_path, duration, period, predictor=None,
-                 estimator=None, verbose=VERBOSE, multiprocess=True):
+                 estimator=None, metric='MSE', verbose=VERBOSE, multiprocess=True):
     """
     Args:
         - file_path: the path of the csv storing the nav records of a fund
@@ -120,12 +92,13 @@ def parallel_run(file_path, duration, period, predictor=None,
                 nav_table=nav_dataset,
                 file_path=None
             ), split_date_gen)
-            rmse_gen = p.imap(partial(
+            prf_gen = p.imap(partial(
                 __eval,
                 predictor=predictor,
-                estimator=estimator
+                estimator=estimator,
+                metric=metric
             ), train_test_gen)
-            rmses = list(rmse_gen)
+            performances = list(prf_gen)
     else:
         split_date_gen = get_split_date_gen()
         train_test_gen = map(partial(
@@ -133,21 +106,19 @@ def parallel_run(file_path, duration, period, predictor=None,
             nav_table=nav_dataset,
             file_path=None
         ), split_date_gen)
-        rmse_gen = map(partial(
+        prf_gen = map(partial(
             __eval,
             predictor=predictor,
-            estimator=estimator
+            estimator=estimator,
+            metric=metric
         ), train_test_gen)
-        rmses = list(rmse_gen)
-
-    if verbose:
-        show_result(file_path, train_ends, rmses)
-    return train_ends, rmses
+        performances = list(prf_gen)
+    return train_ends, performances
 
 
-def show_result(file_path, train_ends, rmses):
-    performance_table = pd.DataFrame([train_ends, rmses]).T
-    performance_table.columns = ['date', 'rmse']
+def show_result(file_path, train_ends, performances, metric):
+    performance_table = pd.DataFrame([train_ends, performances]).T
+    performance_table.columns = ['date', metric]
     performance_table.set_index('date', inplace=True)
     dataset = load_dataset(file_path)
     performance_table.plot()
@@ -198,7 +169,7 @@ def __split(x, nav_table=None, file_path=None):
         raise ValueError('Error in __split')
 
 
-def __eval(x, predictor=None, estimator=None):
+def __eval(x, predictor=None, estimator=None, metric='MSE'):
     if predictor is None:
         assert estimator is not None
     if estimator is None:
@@ -207,7 +178,9 @@ def __eval(x, predictor=None, estimator=None):
     return evaluation(train, test,
                       predictor=predictor,
                       estimator=estimator,
-                      verbose=False)
+                      verbose=True,
+                      metric=metric
+                      )
 
 
 if __name__ == '__main__':
@@ -219,7 +192,7 @@ if __name__ == '__main__':
     prediction_length = 14
     eval_period = 70
     mode = 'iq_deep_ar'
-
+    metric = 'MSE'
     assert mode == 'fbprophet' or mode == 'deep_ar' or mode == 'iq_deep_ar'
     if mode == 'fbprophet':
         from gluonts.model import prophet
@@ -262,10 +235,10 @@ if __name__ == '__main__':
 
     # Only fbprophet does not use trainable estimator
     if mode == 'fbprophet':
-        ans = parallel_run(file_path, prediction_length, eval_period,
-                           predictor=predictor, multiprocess=True)
+        train_ends, performances = parallel_run(file_path, prediction_length, eval_period,
+                           predictor=predictor, metric=metric, multiprocess=True)
     else:
-        ans = parallel_run(file_path, prediction_length, eval_period,
-                           estimator=estimator, multiprocess=True)
-
+        train_ends, performances = parallel_run(file_path, prediction_length, eval_period,
+                           estimator=estimator, metric=metric, multiprocess=True)
     print("Execution Time:", datetime.now() - begin_time)
+    show_result(file_path, train_ends, performances, metric)
