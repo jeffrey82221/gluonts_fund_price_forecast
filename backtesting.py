@@ -37,7 +37,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 CPU_COUNT = cpu_count()
-VERBOSE = False
+VERBOSE = True
 
 
 class Transfer:
@@ -214,13 +214,35 @@ if __name__ == '__main__':
     from fund_price_loader import NAV_DIR
     nav_files = os.listdir(NAV_DIR)
     file_path = os.path.join(NAV_DIR, nav_files[800])
-    """
-    from gluonts.model import prophet
-    ans = parallel_run(file_path, 14, 70,
-        predictor=prophet.ProphetPredictor, multiprocess=True)
-    """
-    from pts.model import deepar
-    ans = parallel_run(file_path, 14, 70,
-                       estimator=deepar.DeepAREstimator, multiprocess=True)
+    prediction_length = 14
+    eval_period = 70
+    mode = 'fbprophet'
+
+    assert mode == 'fbprophet' or mode == 'deep_ar' or mode == 'iq_deep_ar'
+    if mode == 'fbprophet':
+        from gluonts.model import prophet
+        predictor = prophet.ProphetPredictor
+    elif mode == 'deep_ar':
+        from pts.model import deepar
+        from pts import Trainer
+        import torch
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        trainer = Trainer(epochs=10, device=device)
+        estimator = deepar.DeepAREstimator(
+            freq="D",
+            prediction_length=prediction_length,
+            input_size=17,
+            trainer=trainer
+        )
+    elif mode == 'iq_deep_ar':
+        pass
+
+    # Only fbprophet does not use trainable estimator
+    if mode == 'fbprophet':
+        ans = parallel_run(file_path, prediction_length, eval_period,
+                           predictor=predictor, multiprocess=True)
+    else:
+        ans = parallel_run(file_path, prediction_length, eval_period,
+                           estimator=estimator, multiprocess=True)
 
     print("Execution Time:", datetime.now() - begin_time)

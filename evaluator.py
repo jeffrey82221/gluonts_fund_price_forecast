@@ -34,18 +34,6 @@ def evaluation(train, test, predictor=None, estimator=None, verbose=False):
         print('[evaluation] predictor created!')
     else:
         assert (predictor is None) and (estimator is not None)
-        from pts import Trainer
-        import torch
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        trainer = Trainer(epochs=10, device=device)
-        print('[evaluation] trainer initialized!')
-        estimator = estimator(
-            freq="D",
-            prediction_length=list(test)[0]['target'].shape[0],
-            input_size=17,
-            trainer=trainer
-        )
-        print('[evaluation] estimator initialized!')
         predictor = estimator.train(training_data=train, num_workers=0)
         print('[evaluation] predictor created!')
     predictions = list(predictor.predict(train))
