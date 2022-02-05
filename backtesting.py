@@ -19,6 +19,8 @@ XXX:
     - [X] Using multiprocess (30.089s)
     - [X] Using single process (86.263s)
 """
+import warnings
+warnings.filterwarnings('ignore')
 import logging
 from utils import blockPrinting
 import matplotlib.pylab as plt
@@ -33,12 +35,12 @@ from billiard.pool import Pool
 from sharable_dataset import SharableListDataset
 from datetime import timedelta
 from datetime import datetime
-import warnings
-warnings.filterwarnings('ignore')
+from pts import Trainer
+import torch
 
 CPU_COUNT = cpu_count()
 VERBOSE = True
-
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Transfer:
     @staticmethod
@@ -216,18 +218,15 @@ if __name__ == '__main__':
     file_path = os.path.join(NAV_DIR, nav_files[800])
     prediction_length = 14
     eval_period = 70
-    mode = 'fbprophet'
+    mode = 'iq_deep_ar'
 
     assert mode == 'fbprophet' or mode == 'deep_ar' or mode == 'iq_deep_ar'
     if mode == 'fbprophet':
         from gluonts.model import prophet
         predictor = prophet.ProphetPredictor
     elif mode == 'deep_ar':
+        trainer = Trainer(epochs=10, device=DEVICE)
         from pts.model import deepar
-        from pts import Trainer
-        import torch
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        trainer = Trainer(epochs=10, device=device)
         estimator = deepar.DeepAREstimator(
             freq="D",
             prediction_length=prediction_length,
@@ -235,7 +234,31 @@ if __name__ == '__main__':
             trainer=trainer
         )
     elif mode == 'iq_deep_ar':
-        pass
+        trainer = Trainer(epochs=10, device=DEVICE)
+        from pts.model import deepar
+        from pts.modules.distribution_output import ImplicitQuantileOutput
+        """
+        TODO:
+        - [X] fix cardiinality -> None (default)
+        - [X] fix use_feat_dynamic_real -> False (default)
+        - [X] fix use_feat_static_cat -> False (default)
+        - [X] fix prediction_length and context_length -> prediction_length (default)
+        - [X] tune input_size -> 20
+        """
+        estimator = deepar.DeepAREstimator(
+            distr_output=ImplicitQuantileOutput(output_domain="Positive"),
+            cell_type='GRU',
+            input_size=20, # Tuned
+            num_cells=64,
+            num_layers=3,
+            dropout_rate=0.2,
+            embedding_dimension = [4, 4, 4, 4, 16],
+            prediction_length=prediction_length,
+            context_length=prediction_length, # Default
+            freq='D',
+            scaling=True,
+            trainer=trainer
+        )
 
     # Only fbprophet does not use trainable estimator
     if mode == 'fbprophet':

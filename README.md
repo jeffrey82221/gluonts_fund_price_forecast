@@ -16,10 +16,10 @@ This project aims to predict the future price of mutual fund via GluonTS package
             - [X] split_date generator
             - [X] split dataset -> prediction -> evaluation
         - [-] Try sharing of NAV Table Between Process
-- [X] Adapt the Model to the Deep Trainable Models
+- [X] Adapt the Model in backtesting to the Deep Trainable Models
     - [X] using pytorch version models with pytorchts package: https://github.com/zalandoresearch/pytorch-ts
     - [ ] Adapt to all examples in pytorch-ts
-        - [ ] Implicit Quantile Network 
+        - [X] Implicit Quantile Network
         - [ ] Multivariate-Flow
         - [ ] Time-Grad
 - [ ] Enhance evaluator.py (adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67)
