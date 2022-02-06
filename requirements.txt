@@ -7,5 +7,6 @@ numpy==1.22.1
 pillow==9.0.0
 sklearn==0.0
 pytorchts==0.5.1
+ujson==5.1.0
 # extension
 fbprophet==0.7.1
