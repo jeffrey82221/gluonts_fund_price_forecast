@@ -26,15 +26,23 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
     - [X] Allow comparison of different models in a single plot
 - [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
-- [ ] Consider MultiVariate Mode for Single Fund Prediction: 
+    - [ ] Seperate nav splitting methods from fund_price_loader.py to nav_splitter.py
+- [ ] Consider MultiVariate Mode for Single Fund Prediction:
+    - [X] Find data object in gluonts for storing multiple time series (check multivariate_dataset_examples.py)
+    - [ ] Organize of nav curves of multiple funds into the multi-timeseries objects offered by gluonts. 
+        - [ ] Read nav curves into multiple SharableListDataset 
+        - [ ] Using Spliter to obtain multiple train, test SharablesListDataset(s) 
+        - [ ] [build] a MultiVariateSharableDataset which allow storing of multiple sharable target arrays and allow convertion to 
+            grouped_list_dataset (check multivariate_dataset_examples.py for progamming the convertion). 
+        - [ ] Before convert those train, test to local ListDataset(s), merge them into MultiVariateSharableDataset
+        - [ ] Convert the multivariate_dataset into local grouped dataset using train_grouper and test_grouper
+    - [ ] Adapt to Multi-Variate Deep Model (see examples of pytorch-ts) and incorporate it into the repo. 
+        - [ ] Allow evaluation of Multiple Time Series (see plot and MultivariateEvaluator in Time-Grad-Electricity) 
     - [ ] Create different technical curves for each fund
         - [ ] Earning of fund in a time period: e.g., (nav tomorrow - nav today) / nav today. (parameter: time_period)
         - [ ] Standard deviation of earning in a time periods. (parameter: earning_time_period, std_time_period) 
         - [ ] Original NAV curve 
-    - [ ] Find data object in gluonts for storing multiple time series (check MultivariateGrouper in Time-Grad-Electricity)
-        - [ ] Organize of technical curves of a fund into the multi-timeseries objects offered by gluonts. 
-    - [ ] Adapt to Multi-Variate Deep Model (see examples of pytorch-ts) and incorporate it into the repo. 
-        - [ ] Allow evaluation of Multiple Time Series (see plot and MultivariateEvaluator in Time-Grad-Electricity)
+    
 - [ ] Price Prediction of Multiple Funds
     - [ ] Load multiple funds and convert to multiple time series 
     - [ ] Parallel loading and processing of multiple time series
