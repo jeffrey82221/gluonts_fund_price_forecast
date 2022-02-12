@@ -1,9 +1,9 @@
-from joblib import Memory
 from datetime import datetime
 import pandas as pd
 from nav_splitter import split_nav_dataframe
 from convertor import convert_to_list_dataset
-memory = Memory('./cachedir', verbose=0)
+# from joblib import Memory
+# memory = Memory('./cachedir', verbose=0)
 
 NAV_DIR = '../fund_price_crawler/nav'
 
@@ -23,7 +23,7 @@ def load_dataset(file_path):
     return dataset
 
 
-@memory.cache
+# @memory.cache
 def load_nav_table(file_path):
     """
     Load the NAV csv into pandas DataFrame and fill the missing
@@ -83,8 +83,6 @@ def __fill_nav_dataframe(raw_nav_table):
     return nav_table
 
 
-
-
 def load_split_dataset(file_path, split_date):
     """
     Load CSV and split it into a training ListDataset
@@ -107,6 +105,7 @@ def load_split_dataset(file_path, split_date):
         convert_to_list_dataset(test_nav_table)
     )
     return train, test
+
 
 if __name__ == '__main__':
     import os
