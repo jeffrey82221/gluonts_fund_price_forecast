@@ -26,7 +26,7 @@ This project aims to predict the future price of mutual fund via GluonTS package
     - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
     - [X] Allow comparison of different models in a single plot
 - [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
-    - [ ] Seperate nav splitting methods from fund_price_loader.py to nav_splitter.py
+    - [X] Seperate nav splitting methods from fund_price_loader.py to nav_splitter.py
 - [ ] Consider MultiVariate Mode for Single Fund Prediction:
     - [X] Find data object in gluonts for storing multiple time series (check multivariate_dataset_examples.py)
     - [ ] Organize of nav curves of multiple funds into the multi-timeseries objects offered by gluonts. 

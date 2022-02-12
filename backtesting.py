@@ -34,8 +34,8 @@ from sharable_dataset import SharableListDataset
 from billiard.pool import Pool
 from billiard import cpu_count
 from functools import partial
-from fund_price_loader import split_nav_list_dataset_by_end_dates
-from fund_price_loader import split_nav_dataframe_by_end_dates, load_nav_table, load_dataset
+from nav_splitter import split_nav_list_dataset_by_end_dates, split_nav_dataframe_by_end_dates
+from fund_price_loader import load_nav_table, load_dataset
 from evaluator import evaluation
 import pandas as pd
 from gluonts.dataset.util import to_pandas

@@ -1,10 +1,8 @@
+from joblib import Memory
 from datetime import datetime
 import pandas as pd
-from gluonts.dataset.common import ListDataset
-from joblib import Memory
-from datetime import timedelta
-from sharable_splitter import Splitter
-
+from nav_splitter import split_nav_dataframe
+from convertor import convert_to_list_dataset
 memory = Memory('./cachedir', verbose=0)
 
 NAV_DIR = '../fund_price_crawler/nav'
@@ -21,7 +19,7 @@ def load_dataset(file_path):
     """
     nav_table = __load_raw_nav_table(file_path)
     nav_table = __fill_nav_dataframe(nav_table)
-    dataset = __convert_to_list_dataset(nav_table)
+    dataset = convert_to_list_dataset(nav_table)
     return dataset
 
 
@@ -85,19 +83,6 @@ def __fill_nav_dataframe(raw_nav_table):
     return nav_table
 
 
-def __convert_to_list_dataset(nav_table):
-    """
-    Convert single nav_table (DataFrame) to GluonTS ListDataset.
-
-    Args:
-        - nav_table: the pandas table.
-    Returns:
-        - dataset: the ListDataset.
-    """
-    dataset = ListDataset([
-        {"start": nav_table.index[0],
-         "target": nav_table.value}], freq="D")
-    return dataset
 
 
 def load_split_dataset(file_path, split_date):
@@ -115,81 +100,13 @@ def load_split_dataset(file_path, split_date):
     """
     nav_table = __load_raw_nav_table(file_path)
     nav_table = __fill_nav_dataframe(nav_table)
-    train_nav_table, test_nav_table = __split_nav_dataframe(
+    train_nav_table, test_nav_table = split_nav_dataframe(
         nav_table, split_date)
     train, test = (
-        __convert_to_list_dataset(train_nav_table),
-        __convert_to_list_dataset(test_nav_table)
+        convert_to_list_dataset(train_nav_table),
+        convert_to_list_dataset(test_nav_table)
     )
     return train, test
-
-
-def split_nav_list_dataset_by_end_dates(nav_dataset, train_end, test_end):
-    """
-    Extract training and testing dataset from nav_dataset according to
-    the ending date of training and testing dataset.
-
-    Args:
-        - nav_table: (sharable_dataset.SharableListDataset) nav_dataset
-        - train_end: (datetime) end of training
-        - test_end: (datetime) end of testing
-    Returns:
-        - train: (ListDataset)
-        - test: (ListDataset)
-    """
-    dataset, _ = Splitter(test_end + timedelta(days=1)).split(nav_dataset)
-    train, test = Splitter(train_end + timedelta(days=1)).split(dataset)
-    return train, test
-
-
-def split_nav_dataframe_by_end_dates(nav_table, train_end, test_end):
-    """
-    Extract training and testing dataset from nav_table according to
-    the ending date of training and testing dataset.
-
-    Args:
-        - nav_table: (pandas.DataFrame) nav table
-        - train_end: (datetime) end of training
-        - test_end: (datetime) end of testing
-
-    Returns:
-        - train: (ListDataset)
-        - test: (ListDataset)
-
-    """
-    dataset, _ = __split_nav_dataframe(
-        nav_table, test_end
-    )
-    train, test = __split_nav_dataframe(
-        dataset, train_end
-    )
-    train, test = (
-        __convert_to_list_dataset(train),
-        __convert_to_list_dataset(test)
-    )
-    return train, test
-
-
-def __split_nav_dataframe(nav_table, split_date):
-    """
-    Split NAV pandas DataFrame into
-    a training and a testing DataFrame according to a split_date,
-    such that split_date becomes the last date of the
-    training DataFrame.
-
-    Args:
-        - split_date (datetime.datetime)
-    Returns:
-        - train: the training DataFrame
-        - test:  the testing DataFrame
-
-    """
-    assert split_date in nav_table.index.tolist()
-    split_index = nav_table.index.tolist().index(split_date)
-    train = nav_table.iloc[:split_index + 1]
-    test = nav_table.iloc[split_index + 1:]
-    return train, test
-
 
 if __name__ == '__main__':
     import os
@@ -197,9 +114,5 @@ if __name__ == '__main__':
     file_path = os.path.join(NAV_DIR, nav_files[0])
     print(f"file_path: {file_path}")
     dataset = load_dataset(file_path)
-    from gluonts.model import prophet
-    predictor = prophet.ProphetPredictor(
-        freq="D", prediction_length=1)
-    predictions = predictor.predict(dataset)
-    print('Prediction Result:')
-    print(next(predictions))
+    print('dataset:')
+    print(dataset)
