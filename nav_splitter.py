@@ -2,7 +2,6 @@ from datetime import timedelta
 from sharable_splitter import Splitter
 
 
-
 def split_nav_list_dataset_by_end_dates(nav_dataset, train_end, test_end):
     """
     Extract training and testing dataset from nav_dataset according to
@@ -68,5 +67,3 @@ def split_nav_dataframe(nav_table, split_date):
     train = nav_table.iloc[:split_index + 1]
     test = nav_table.iloc[split_index + 1:]
     return train, test
-
-

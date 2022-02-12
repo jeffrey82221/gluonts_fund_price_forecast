@@ -1,4 +1,6 @@
 from gluonts.dataset.common import ListDataset
+
+
 def convert_to_list_dataset(nav_table):
     """
     Convert single nav_table (DataFrame) to GluonTS ListDataset.
