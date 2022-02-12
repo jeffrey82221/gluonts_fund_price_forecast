@@ -278,7 +278,7 @@ if __name__ == '__main__':
         from gluonts.model import prophet
         predictor = prophet.ProphetPredictor
     """
-    trainer = Trainer(epochs=1, device=DEVICE)
+    trainer = Trainer(epochs=10, device=DEVICE)
     estimators = dict()
     from pts.model.time_grad import TimeGradEstimator
     estimator = TimeGradEstimator(
