@@ -26,222 +26,83 @@ TODO:
     - [X] fix prediction_length and context_length -> prediction_length (default)
     - [X] tune input_size -> 20
 - [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced. (see XXX)
-    - [ ] A abstract BackTestBase object
-    - [ ] A basic (single variate) BackTest object
+    - [X] A abstract BackTestBase object
+    - [X] A basic (single variate) BackTest object
     - [ ] A multi-variate BackTest object
-- [ ] Allow single-variate and multi-variate results to be plot in the same graph. 
-    - [ ] Seperate BackTestor and apply/show_result -> BackTestor + BackTestApplier
-        NOTE: BackTestApplier allow each estimator to be paired with
+- [ ] Allow single-variate and multi-variate results to be plot in the same graph.
+    - [X] Seperate BackTestor and apply/show_result -> BackTestor + BackTestApplier
+    - [ ] Let BackTestApplier allow each estimator to be paired with
              a certain BackTestor (mutli-variate or single-variate)
     - [ ] For single variate models, allow them to iterate over multiple time series
 """
-import torch
-from pts import Trainer
-from datetime import datetime
-from datetime import timedelta
+from backtest_applier import BackTestApplier
+from backtest_base import BackTestBase
+from fund_price_loader import load_nav_table
+from nav_splitter import split_nav_list_dataset_by_end_dates
 from sharable_dataset import SharableListDataset
-from billiard.pool import Pool
-from billiard import cpu_count
-from functools import partial
-from nav_splitter import split_nav_list_dataset_by_end_dates, split_nav_dataframe_by_end_dates
-from fund_price_loader import load_nav_table, load_dataset
-from evaluator import evaluation
-import pandas as pd
-from gluonts.dataset.util import to_pandas
-import matplotlib.pylab as plt
-from utils import blockPrinting
+from pts import Trainer
+import torch
 import logging
 import warnings
 warnings.filterwarnings('ignore')
 
-CPU_COUNT = cpu_count()
-VERBOSE = True
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class BackTestor:
-    # XXX: common
-    def __init__(self, file_path, estimators, prediction_length,
-                 eval_period, metric, verbose=VERBOSE, multiprocess=True):
+class SingleVariateBackTestor(BackTestBase):
+    """
+    Main method of this class:
+        __parallel_run:
+            running the backtesting given a nav file path and an estimator
+    """
+
+    def __init__(self, file_path, prediction_length,
+                 eval_period, metric, verbose=False, multiprocess=True):
         """
         Args:
             - file_path: the path of the csv storing the nav records of a fund
-            - estimators: a dictionary storing the gluonts estimator
             - prediction_length: (number of days) length of each prediction to be evaluate against the ground truth.
             - eval_period:  (number of days) back-testing skipping interval.
             - metric: the metric in agg_metrics to be used for measuring the performance.
             - verbose: whether to monitor the running status
             - multiprocess: whether using multiprocessing to speed up backtesting.
         """
+        super(SingleVariateBackTestor, self).__init__(
+            prediction_length,
+            eval_period,
+            metric,
+            verbose=verbose,
+            multiprocess=multiprocess
+        )
         self.__file_path = file_path
-        self.__estimators = estimators
-        assert isinstance(self.__estimators, dict)
-        self.__prediction_length = prediction_length
-        self.__eval_period = eval_period
-        self.__metric = metric
-        self.__verbose = verbose
-        self.__multiprocess = multiprocess
-        # for storing dates (at the end of training data) for each iteration of
-        # backtesting
-        self.__train_ends = None
-    # XXX: @common
-    def apply(self):
-        """
-        Apply estimators to parallel_runs
-        """
-        self.__estimator_performances = dict()
-        for estimator_name in self.__estimators:
-            print(f"Start Running BackTesting on {estimator_name}")
-            begin_time = datetime.now()
-            train_ends, performances = self.__parallel_run(
-                estimator=self.__estimators[estimator_name])
-            if self.__train_ends is not None:
-                if self.__verbose:
-                    print(f'[apply] {self.__train_ends}')
-                    print(f'[apply] {train_ends}')
-                assert self.__train_ends == train_ends
-            else:
-                self.__train_ends = train_ends
-            self.__estimator_performances[estimator_name] = performances
-            print(
-                f"Backtest Time for Estimator {estimator_name}:",
-                datetime.now() - begin_time)
-    # XXX: @common
-    def show_result(self, index=None):
-        assert self.__train_ends is not None
-        assert self.__estimator_performances is not None
-        performance_table = pd.DataFrame([self.__train_ends]).T
-        performance_table.columns = ['date']
-        print('[show_result] create pandas table with train_end dates')
-        for estimator_name in self.__estimator_performances:
-            assert estimator_name in self.__estimators
-            performance_table[estimator_name] = self.__estimator_performances[estimator_name]
-            print(f'[show_result] add {estimator_name} results to table')
-        performance_table.set_index('date', inplace=True)
-        performance_table.plot()
-        dataset = self.get_visualizing_dataset(index=index)
-        to_pandas(list(dataset)[0]).plot(linewidth=2)
-        plt.ylabel(self.__metric)
-        plt.xlabel('date')
-        plt.show()
-    # XXX: @single
-    def get_visualizing_dataset(self, index=None):
-        """
-        Args:
-            index: integer for selecting the file to be 
-                plot against (not None in multivariate setting). 
-        """
-        dataset = load_dataset(self.__file_path)
-        return dataset
-    # @blockPrinting
-    # XXX
-    def __parallel_run(self, predictor=None,
-                       estimator=None):
-        """
-        Args:
-            - predictor: the gluonts predictor (for example: facebook prophet)
-            - estimator: the pytorchts trainable estimator
-        Returns:
-            - train_ends: dates at the end of training data for each iteration of backtesting
-            - performances: the performance calculated for each iteration of backtesting.
-        """
-        assert (predictor is not None) or (estimator is not None)
-        # XXX: @single
+
+    def load_nav_data(self):
         nav_table = load_nav_table(self.__file_path)
-        start_date = nav_table.index.min()
-        end_date = nav_table.index.max()
-        # XXX: @common
-        def get_split_date_gen():
-            """
-            The generator yeilds:
-                - split_date: end date of the testing data.
-                - period_end_date: end date of the training data.
-            """
-            split_date_gen = self.__split_date_generator(
-                start_date, end_date, duration=self.__prediction_length, period=self.__eval_period)
-            return split_date_gen
+        return nav_table
 
-        if self.__verbose:
-            split_date_gen = get_split_date_gen()
-            print(f'Start Date: {start_date}')
-            print(f'End Date: {end_date}')
-            print(f'Prediction Length: {self.__prediction_length}')
-            print(f'Evaluation Period: {self.__eval_period}')
-            for train_end, test_end in split_date_gen:
-                print(f'Train End: {train_end}; Test End: {test_end}')
+    def get_start_n_end_dates(self, nav_data):
+        start_date = nav_data.index.min()
+        end_date = nav_data.index.max()
+        return start_date, end_date
 
-        train_ends = list(map(lambda x: x[0], get_split_date_gen()))
-        # XXX: @single
+    def share_nav_data(self, nav_data):
+        """
+        Converting the nav_table(s) to the sharable counterparts
+        (e.g., SharableListDataset)
+        Args:
+            - nav_data: a single nav_table or a list of nav_table(s)
+        Returns:
+            - shared_nav_data: a memory shared nav_data
+        """
         nav_dataset = SharableListDataset(
-            nav_table.index[0],
-            nav_table.value,
+            nav_data.index[0],
+            nav_data.value,
             freq='D'
         )
-        TestorClass = BackTestor
-        # XXX: @common
-        if self.__multiprocess:
-            with Pool(CPU_COUNT) as p:
-                split_date_gen = get_split_date_gen()
-                train_test_gen = p.imap(partial(
-                    TestorClass.parallel_split,
-                    nav_table=nav_dataset
-                ), split_date_gen)
-                print('[parallel_run] connect to split_date_gen')
-                prf_gen = p.imap(partial(
-                    TestorClass.parallel_eval,
-                    predictor=predictor,
-                    estimator=estimator,
-                    metric=self.__metric
-                ), train_test_gen)
-                print('[parallel_run] connect to train_test_gen')
-                performances = list(prf_gen)
-        else:
-            split_date_gen = get_split_date_gen()
-            train_test_gen = map(partial(
-                BackTestor.parallel_split,
-                nav_table=nav_dataset
-            ), split_date_gen)
-            prf_gen = map(partial(
-                BackTestor.parallel_eval,
-                predictor=predictor,
-                estimator=estimator,
-                metric=self.__metric
-            ), train_test_gen)
-            performances = list(prf_gen)
-        del nav_dataset
-        return train_ends, performances
+        return nav_dataset
 
-    # XXX: @common
-    def __split_date_generator(
-            self, start_date, end_date, duration=7, period=1):
-        """
-        A generator generating the dates splitting the nav_table into
-        multiple training and testing for back-testing.
-
-        Args:
-            - start_date: start date of the nav_table.
-            - end_date:   end date of the nav_table.
-            - duration: (number of days) length of the testing dataset.
-            - period:   (number of days) back-testing skipping interval.
-
-        Yields:
-            - split_date: end date of the testing data.
-            - period_end_date: end date of the training data.
-
-        Note: testing dataset have dates after the training data.
-        """
-        period_end_date = start_date + timedelta(days=2 * duration + 1)
-        # Allow the training data to have at least `duration` days so it can support
-        # trainable models (e.g., DeepAR).
-        while period_end_date <= end_date:
-            split_date = period_end_date - timedelta(days=duration)
-            yield split_date, period_end_date
-            period_end_date = period_end_date + timedelta(days=period)
-
-    # XXX: @single-variate
     @staticmethod
-    def parallel_split(x, nav_table=None, file_path=None):
-        # NOTE: using private method name does not work with p.imap of billiard
+    def parallel_split(x, nav_table=None):
         try:
             train_end, test_end = x
             return split_nav_list_dataset_by_end_dates(
@@ -250,22 +111,6 @@ class BackTestor:
             print(f'Error in parallel_split: {e}')
             logging.exception(str(e))
             raise e
-    
-    # XXX: @common
-    @staticmethod
-    def parallel_eval(x, predictor=None, estimator=None, metric='MSE'):
-        # NOTE: using private method name does not work with p.imap of billiard
-        if predictor is None:
-            assert estimator is not None
-        if estimator is None:
-            assert predictor is not None
-        train, test = x
-        return evaluation(train, test,
-                          predictor=predictor,
-                          estimator=estimator,
-                          verbose=VERBOSE,
-                          metric=metric
-                          )
 
 
 if __name__ == '__main__':
@@ -312,12 +157,8 @@ if __name__ == '__main__':
     )
     estimators['iq_deep_ar'] = estimator
     print('Create Implict Quantile Deep AR Estimator')
-    testor = BackTestor(
-        file_path,
-        estimators,
-        prediction_length,
-        eval_period,
-        metric,
-        verbose=True)
-    testor.apply()
-    testor.show_result()
+    applier = BackTestApplier(SingleVariateBackTestor,
+                              file_path, prediction_length, eval_period, metric,
+                              estimators)
+    applier.run()
+    applier.show_result()
