@@ -25,6 +25,15 @@ TODO:
     - [X] fix use_feat_static_cat -> False (default)
     - [X] fix prediction_length and context_length -> prediction_length (default)
     - [X] tune input_size -> 20
+- [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced. (see XXX)
+    - [ ] A abstract BackTestBase object
+    - [ ] A basic (single variate) BackTest object
+    - [ ] A multi-variate BackTest object
+- [ ] Allow single-variate and multi-variate results to be plot in the same graph. 
+    - [ ] Seperate BackTestor and apply/show_result -> BackTestor + BackTestApplier
+        NOTE: BackTestApplier allow each estimator to be paired with
+             a certain BackTestor (mutli-variate or single-variate)
+    - [ ] For single variate models, allow them to iterate over multiple time series
 """
 import torch
 from pts import Trainer
@@ -51,6 +60,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class BackTestor:
+    # XXX: common
     def __init__(self, file_path, estimators, prediction_length,
                  eval_period, metric, verbose=VERBOSE, multiprocess=True):
         """
@@ -74,7 +84,7 @@ class BackTestor:
         # for storing dates (at the end of training data) for each iteration of
         # backtesting
         self.__train_ends = None
-
+    # XXX: @common
     def apply(self):
         """
         Apply estimators to parallel_runs
@@ -96,8 +106,8 @@ class BackTestor:
             print(
                 f"Backtest Time for Estimator {estimator_name}:",
                 datetime.now() - begin_time)
-
-    def show_result(self):
+    # XXX: @common
+    def show_result(self, index=None):
         assert self.__train_ends is not None
         assert self.__estimator_performances is not None
         performance_table = pd.DataFrame([self.__train_ends]).T
@@ -109,20 +119,26 @@ class BackTestor:
             print(f'[show_result] add {estimator_name} results to table')
         performance_table.set_index('date', inplace=True)
         performance_table.plot()
-        dataset = load_dataset(self.__file_path)
+        dataset = self.get_visualizing_dataset(index=index)
         to_pandas(list(dataset)[0]).plot(linewidth=2)
         plt.ylabel(self.__metric)
         plt.xlabel('date')
         plt.show()
+    # XXX: @single
+    def get_visualizing_dataset(self, index=None):
+        """
+        Args:
+            index: integer for selecting the file to be 
+                plot against (not None in multivariate setting). 
+        """
+        dataset = load_dataset(self.__file_path)
+        return dataset
     # @blockPrinting
-
+    # XXX
     def __parallel_run(self, predictor=None,
                        estimator=None):
         """
         Args:
-            - file_path: the path of the csv storing the nav records of a fund
-            - duration: (number of days) length of the testing dataset.
-            - period:   (number of days) back-testing skipping interval.
             - predictor: the gluonts predictor (for example: facebook prophet)
             - estimator: the pytorchts trainable estimator
         Returns:
@@ -130,10 +146,11 @@ class BackTestor:
             - performances: the performance calculated for each iteration of backtesting.
         """
         assert (predictor is not None) or (estimator is not None)
+        # XXX: @single
         nav_table = load_nav_table(self.__file_path)
         start_date = nav_table.index.min()
         end_date = nav_table.index.max()
-
+        # XXX: @common
         def get_split_date_gen():
             """
             The generator yeilds:
@@ -154,21 +171,24 @@ class BackTestor:
                 print(f'Train End: {train_end}; Test End: {test_end}')
 
         train_ends = list(map(lambda x: x[0], get_split_date_gen()))
+        # XXX: @single
         nav_dataset = SharableListDataset(
             nav_table.index[0],
             nav_table.value,
             freq='D'
         )
+        TestorClass = BackTestor
+        # XXX: @common
         if self.__multiprocess:
             with Pool(CPU_COUNT) as p:
                 split_date_gen = get_split_date_gen()
                 train_test_gen = p.imap(partial(
-                    BackTestor.parallel_split,
+                    TestorClass.parallel_split,
                     nav_table=nav_dataset
                 ), split_date_gen)
                 print('[parallel_run] connect to split_date_gen')
                 prf_gen = p.imap(partial(
-                    BackTestor.parallel_eval,
+                    TestorClass.parallel_eval,
                     predictor=predictor,
                     estimator=estimator,
                     metric=self.__metric
@@ -188,8 +208,10 @@ class BackTestor:
                 metric=self.__metric
             ), train_test_gen)
             performances = list(prf_gen)
+        del nav_dataset
         return train_ends, performances
 
+    # XXX: @common
     def __split_date_generator(
             self, start_date, end_date, duration=7, period=1):
         """
@@ -216,24 +238,20 @@ class BackTestor:
             yield split_date, period_end_date
             period_end_date = period_end_date + timedelta(days=period)
 
+    # XXX: @single-variate
     @staticmethod
     def parallel_split(x, nav_table=None, file_path=None):
         # NOTE: using private method name does not work with p.imap of billiard
         try:
             train_end, test_end = x
-            if nav_table is None:
-                assert file_path is not None
-                nav_table = load_nav_table(file_path)
-                return split_nav_dataframe_by_end_dates(
-                    nav_table, train_end, test_end)
-            else:
-                return split_nav_list_dataset_by_end_dates(
-                    nav_table, train_end, test_end)
+            return split_nav_list_dataset_by_end_dates(
+                nav_table, train_end, test_end)
         except BaseException as e:
             print(f'Error in parallel_split: {e}')
             logging.exception(str(e))
             raise e
-
+    
+    # XXX: @common
     @staticmethod
     def parallel_eval(x, predictor=None, estimator=None, metric='MSE'):
         # NOTE: using private method name does not work with p.imap of billiard

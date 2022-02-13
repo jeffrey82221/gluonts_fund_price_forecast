@@ -22,12 +22,16 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [X] [Implicit Quantile Network](https://github.com/jeffrey82221/gluonts_fund_price_forecast/commit/bcd759538396c91fc3556900d2f69250fdd7a581)
         - [ ] Multivariate-Flow # Next-Up
         - [X] Time-Grad 
-- [X] Enhance the evaluation 
-    - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
-    - [X] Allow comparison of different models in a single plot
 - [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
     - [X] Seperate nav splitting methods from fund_price_loader.py to nav_splitter.py
-    - [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced. 
+    - [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced.
+        - [ ] A abstract BackTestBase object
+        - [ ] A basic BackTest object 
+        - [ ] A multi-variate BackTest object 
+        - [ ] An object allow both single&multi-variate models 
+- [ ] Enhance the evaluation 
+    - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
+    - [ ] Allow comparison of different models in a single plot
 - [X] Consider MultiVariate Mode for Single Fund Prediction:
     - [X] Find data object in gluonts for storing multiple time series (check multivariate_dataset_examples.py)
     - [X] Organize of nav curves of multiple funds into the multi-timeseries objects offered by gluonts. 

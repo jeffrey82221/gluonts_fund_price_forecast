@@ -39,7 +39,8 @@ VERBOSE = True
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class BackTestor:
+class MultiVariateBackTestor:
+    # XXX: 
     def __init__(self, file_paths, estimators, prediction_length,
                  eval_period, metric, verbose=VERBOSE, multiprocess=True):
         """
@@ -52,8 +53,8 @@ class BackTestor:
             - verbose: whether to monitor the running status
             - multiprocess: whether using multiprocessing to speed up backtesting.
         """
-        self.__file_paths = file_paths
-        self.__target_dim = len(file_paths)
+        self.__file_paths = file_paths # XXX: @multi-variate
+        self.__target_dim = len(file_paths) # XXX: @multi-variate
         self.__estimators = estimators
         assert isinstance(self.__estimators, dict)
         self.__prediction_length = prediction_length
@@ -64,7 +65,7 @@ class BackTestor:
         # for storing dates (at the end of training data) for each iteration of
         # backtesting
         self.__train_ends = None
-
+    # XXX: @common
     def apply(self):
         """
         Apply estimators to parallel_runs
@@ -86,8 +87,8 @@ class BackTestor:
             print(
                 f"Backtest Time for Estimator {estimator_name}:",
                 datetime.now() - begin_time)
-
-    def show_result(self, index):
+    # XXX: @common
+    def show_result(self, index=None):
         assert self.__train_ends is not None
         assert self.__estimator_performances is not None
         performance_table = pd.DataFrame([self.__train_ends]).T
@@ -99,22 +100,26 @@ class BackTestor:
             print(f'[show_result] add {estimator_name} results to table')
         performance_table.set_index('date', inplace=True)
         performance_table.plot()
-        # FIXME: [X] allow selection of file (certain fund) for performance
-        # visualization
-        dataset = load_dataset(self.__file_paths[index])
+        dataset = self.get_visualizing_dataset(index=index)
         to_pandas(list(dataset)[0]).plot(linewidth=2)
         plt.ylabel(self.__metric)
         plt.xlabel('date')
         plt.show()
+    # XXX: @multi-variate
+    def get_visualizing_dataset(self, index=None):
+        """
+        Args:
+            index: integer for selecting the file to be 
+                plot against (not None in multivariate setting). 
+        """
+        dataset = load_dataset(self.__file_paths[index])
+        return dataset
     # @blockPrinting
-
+    # XXX
     def __parallel_run(self, predictor=None,
                        estimator=None):
         """
         Args:
-            - file_paths: the path of the csv storing the nav records of a fund
-            - duration: (number of days) length of the testing dataset.
-            - period:   (number of days) back-testing skipping interval.
             - predictor: the gluonts predictor (for example: facebook prophet)
             - estimator: the pytorchts trainable estimator
         Returns:
@@ -122,7 +127,7 @@ class BackTestor:
             - performances: the performance calculated for each iteration of backtesting.
         """
         assert (predictor is not None) or (estimator is not None)
-        # FIXME: [ ] load_nav_table -> load_mul_nav_tables
+        # XXX: @multi-variate
         nav_tables = [load_nav_table(file_path)
                       for file_path in self.__file_paths]
         for file, nav_table in zip(self.__file_paths, nav_tables):
@@ -130,7 +135,7 @@ class BackTestor:
             print('Length:', len(nav_table))
         start_date = min(map(lambda x: x.index.min(), nav_tables))
         end_date = max(map(lambda x: x.index.max(), nav_tables))
-
+        # XXX: @common 
         def get_split_date_gen():
             """
             The generator yeilds:
@@ -151,24 +156,24 @@ class BackTestor:
                 print(f'Train End: {train_end}; Test End: {test_end}')
 
         train_ends = list(map(lambda x: x[0], get_split_date_gen()))
-        # FIXME: [X] nav_dataset -> nav_datasets: Create multiple
-        # SharableListDataset(s)
-        nav_datasets = [SharableListDataset(
+        # XXX: @multi-variate
+        nav_dataset = [SharableListDataset(
             nav_table.index[0],
             nav_table.value,
             freq='D'
         ) for nav_table in nav_tables]
+        TestorClass = MultiVariateBackTestor
+        # XXX: @common
         if self.__multiprocess:
             with Pool(CPU_COUNT) as p:
                 split_date_gen = get_split_date_gen()
                 train_test_gen = p.imap(partial(
-                    # FIXME: [X] split multiple SharableListDataset(s)
-                    BackTestor.parallel_split,
-                    nav_datasets=nav_datasets
+                    TestorClass.parallel_split,
+                    nav_datasets=nav_dataset
                 ), split_date_gen)
                 print('[parallel_run] connect to split_date_gen')
                 prf_gen = p.imap(partial(
-                    BackTestor.parallel_eval,
+                    TestorClass.parallel_eval,
                     predictor=predictor,
                     estimator=estimator,
                     metric=self.__metric,
@@ -179,20 +184,21 @@ class BackTestor:
         else:
             split_date_gen = get_split_date_gen()
             train_test_gen = map(partial(
-                BackTestor.parallel_split,
+                MultiVariateBackTestor.parallel_split,
                 nav_datasets=nav_datasets
             ), split_date_gen)
             prf_gen = map(partial(
-                BackTestor.parallel_eval,
+                MultiVariateBackTestor.parallel_eval,
                 predictor=predictor,
                 estimator=estimator,
                 metric=self.__metric,
                 target_dim=self.__target_dim
             ), train_test_gen)
             performances = list(prf_gen)
-        del nav_datasets
+        del nav_dataset
         return train_ends, performances
 
+    # XXX: @common
     def __split_date_generator(
             self, start_date, end_date, duration=7, period=1):
         """
@@ -218,7 +224,8 @@ class BackTestor:
             split_date = period_end_date - timedelta(days=duration)
             yield split_date, period_end_date
             period_end_date = period_end_date + timedelta(days=period)
-
+    
+    # XXX: @multi-variate
     @staticmethod
     def parallel_split(x, nav_datasets=None):
         # NOTE: using private method name does not work with p.imap of billiard
@@ -240,6 +247,7 @@ class BackTestor:
             logging.exception(str(e))
             raise e
 
+    # XXX: @common
     @staticmethod
     def parallel_eval(x, predictor=None, estimator=None,
                       metric='MSE', target_dim=1):
@@ -296,9 +304,8 @@ if __name__ == '__main__':
         trainer=trainer
     )
     estimators['time_grad'] = estimator
-    print('Create Deep AR Estimator')
-    print('Create Implict Quantile Deep AR Estimator')
-    testor = BackTestor(
+    print('Create Time Graph Estimator')
+    testor = MultiVariateBackTestor(
         file_paths,
         estimators,
         prediction_length,
@@ -306,4 +313,4 @@ if __name__ == '__main__':
         metric,
         verbose=False)
     testor.apply()
-    testor.show_result(1)
+    testor.show_result(0)
