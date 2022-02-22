@@ -1,6 +1,7 @@
 """
 Using Parallel Computing for BackTesting:
 """
+import pandas as pd
 from evaluator import evaluation
 from functools import partial
 from billiard import cpu_count
@@ -90,6 +91,12 @@ class BackTestBase:
         """
         assert (predictor is not None) or (estimator is not None)
         nav_data = self.load_nav_data()
+        if isinstance(nav_data, list):
+            assert isinstance(nav_data[0], pd.DataFrame)
+            target_dim = len(nav_data)
+        else:
+            assert isinstance(nav_data, pd.DataFrame)
+            target_dim = 1
         start_date, end_date = self.get_start_n_end_dates(nav_data)
 
         def get_split_date_gen():
@@ -119,14 +126,15 @@ class BackTestBase:
                 split_date_gen = get_split_date_gen()
                 train_test_gen = p.imap(partial(
                     type(self).parallel_split,
-                    nav_table=nav_data
+                    nav_data=nav_data
                 ), split_date_gen)
                 print('[run] connect to split_date_gen')
                 prf_gen = p.imap(partial(
                     type(self).parallel_eval,
                     predictor=predictor,
                     estimator=estimator,
-                    metric=self.__metric
+                    metric=self.__metric,
+                    target_dim=target_dim
                 ), train_test_gen)
                 print('[run] connect to train_test_gen')
                 performances = list(prf_gen)
@@ -134,13 +142,14 @@ class BackTestBase:
             split_date_gen = get_split_date_gen()
             train_test_gen = map(partial(
                 type(self).parallel_split,
-                nav_table=nav_data
+                nav_data=nav_data
             ), split_date_gen)
             prf_gen = map(partial(
                 type(self).parallel_eval,
                 predictor=predictor,
                 estimator=estimator,
-                metric=self.__metric
+                metric=self.__metric,
+                target_dim=target_dim
             ), train_test_gen)
             performances = list(prf_gen)
         del nav_data
@@ -174,11 +183,11 @@ class BackTestBase:
 
     @staticmethod
     @abc.abstractmethod
-    def parallel_split(x, nav_table=None):
+    def parallel_split(x, nav_data=None):
         """
         # NOTE: using private method name does not work with p.imap of billiard
         Args:
-            - nav_table: a single nav_table or a list of nav_table(s)
+            - nav_data: a single nav_table or a list of nav_table(s)
         Returns:
             - train: training dataset
             - test:  testing dataset
@@ -186,7 +195,7 @@ class BackTestBase:
             try:
                 train_end, test_end = x
                 return split_nav_list_dataset_by_end_dates(
-                    nav_table, train_end, test_end)
+                    nav_data, train_end, test_end)
             except BaseException as e:
                 print(f'Error in parallel_split: {e}')
                 logging.exception(str(e))
@@ -200,7 +209,7 @@ class BackTestBase:
             raise e
 
     @staticmethod
-    def parallel_eval(x, predictor=None, estimator=None, metric='MSE'):
+    def parallel_eval(x, predictor=None, estimator=None, metric='MSE', target_dim=1):
         # NOTE: using private method name does not work with p.imap of billiard
         if predictor is None:
             assert estimator is not None
@@ -211,7 +220,8 @@ class BackTestBase:
                                   predictor=predictor,
                                   estimator=estimator,
                                   verbose=VERBOSE,
-                                  metric=metric
+                                  metric=metric,
+                                  target_dim=target_dim
                                   )
         del train, test
         return metric_value

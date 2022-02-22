@@ -25,10 +25,10 @@ TODO:
     - [X] fix use_feat_static_cat -> False (default)
     - [X] fix prediction_length and context_length -> prediction_length (default)
     - [X] tune input_size -> 20
-- [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced. (see XXX)
+- [X] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced. (see XXX)
     - [X] A abstract BackTestBase object
     - [X] A basic (single variate) BackTest object
-    - [ ] A multi-variate BackTest object
+    - [X] A multi-variate BackTest object
 - [ ] Allow single-variate and multi-variate results to be plot in the same graph.
     - [X] Seperate BackTestor and apply/show_result -> BackTestor + BackTestApplier
     - [ ] Let BackTestApplier allow each estimator to be paired with
@@ -52,7 +52,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class SingleVariateBackTestor(BackTestBase):
     """
     Main method of this class:
-        __parallel_run:
+        run:
             running the backtesting given a nav file path and an estimator
     """
 
@@ -102,11 +102,11 @@ class SingleVariateBackTestor(BackTestBase):
         return nav_dataset
 
     @staticmethod
-    def parallel_split(x, nav_table=None):
+    def parallel_split(x, nav_data=None):
         try:
             train_end, test_end = x
             return split_nav_list_dataset_by_end_dates(
-                nav_table, train_end, test_end)
+                nav_data, train_end, test_end)
         except BaseException as e:
             print(f'Error in parallel_split: {e}')
             logging.exception(str(e))

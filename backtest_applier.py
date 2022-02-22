@@ -15,6 +15,7 @@ class BackTestApplier:
         self.__estimators = estimators
         self.__metric = metric
         self.__file_path = file_path
+        # XXX: self.__file_path: move from __init__ to run
         self.__backtestor = BackTestor(
             self.__file_path,
             prediction_length,
@@ -47,6 +48,11 @@ class BackTestApplier:
                 datetime.now() - begin_time)
 
     def show_result(self, index=None):
+        """
+        Args:
+            - index: (int) integer for selecting the file to be
+                plot against (not None in multivariate setting).
+        """
         assert self.__train_ends is not None
         assert self.__estimator_performances is not None
         performance_table = pd.DataFrame([self.__train_ends]).T
@@ -67,9 +73,13 @@ class BackTestApplier:
     def get_visualizing_dataset(self, index=None):
         """
         Args:
-            index: integer for selecting the file to be
+            index: (int) integer for selecting the file to be
                 plot against (not None in multivariate setting).
         """
-        assert index is None
-        dataset = load_dataset(self.__file_path)
+        if isinstance(self.__file_path, str):
+            assert index is None
+            dataset = load_dataset(self.__file_path)
+        else:
+            assert isinstance(index, int)
+            dataset = load_dataset(self.__file_path[index])
         return dataset

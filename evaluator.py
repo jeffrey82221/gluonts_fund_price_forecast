@@ -59,8 +59,10 @@ def evaluation(train, test, predictor=None, estimator=None,
             target_agg_funcs={'sum': np.mean},
             num_workers=0
         )
-    else:
+    elif target_dim == 1:
         evaluator = Evaluator(num_workers=0)
+    else:
+        raise ValueError('target_dim should not be less than 1')
     agg_metrics, _ = evaluator(
         iter(tss),
         iter(forecasts),
