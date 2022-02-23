@@ -86,8 +86,8 @@ class BackTestBase:
             - predictor: the gluonts predictor (for example: facebook prophet)
             - estimator: the pytorchts trainable estimator
         Returns:
-            - train_ends: dates at the end of training data for each iteration of backtesting
-            - performances: the performance calculated for each iteration of backtesting.
+            - train_ends: dates at the end of training data for each iteration of backtesting. 
+            - performances: a list of values each indicate a performance calculated for a day in train_ends.
         """
         assert (predictor is not None) or (estimator is not None)
         nav_data = self.load_nav_data()

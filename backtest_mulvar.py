@@ -30,7 +30,6 @@ VERBOSE = True
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from backtest_base import BackTestBase
-from backtest_applier import BackTestApplier
 
 class MultiVariateBackTestor(BackTestBase):
     def __init__(self, file_paths, prediction_length, 
@@ -144,6 +143,7 @@ if __name__ == '__main__':
     )
     estimators['time_grad'] = estimator
     print('Create Time Graph Estimator')
+    from backtest_applier import BackTestApplier
     applier = BackTestApplier(MultiVariateBackTestor,
                               file_paths, 
                               prediction_length, 
