@@ -29,7 +29,7 @@ TODO:
     - [X] A abstract BackTestBase object
     - [X] A basic (single variate) BackTest object
     - [X] A multi-variate BackTest object
-- [ ] Allow single-variate and multi-variate results to be plot in the same graph.
+- [X] Allow single-variate and multi-variate results to be plot in the same graph.
 """
 from backtest_base import BackTestBase
 from fund_price_loader import load_nav_table
@@ -113,6 +113,10 @@ if __name__ == '__main__':
     from fund_price_loader import NAV_DIR
     nav_files = os.listdir(NAV_DIR)
     file_path = os.path.join(NAV_DIR, nav_files[800])
+    file_paths = [
+        os.path.join(
+            NAV_DIR, nav_files[800]), os.path.join(
+            NAV_DIR, nav_files[801])]
     prediction_length = 14
     eval_period = 70
     mode = 'iq_deep_ar'
@@ -125,6 +129,7 @@ if __name__ == '__main__':
     """
     trainer = Trainer(epochs=10, device=DEVICE)
     estimators = dict()
+    print('Create Deep AR Estimator')
     from pts.model import deepar
     estimator = deepar.DeepAREstimator(
         freq="D",
@@ -133,7 +138,7 @@ if __name__ == '__main__':
         trainer=trainer
     )
     estimators['deep_ar'] = estimator
-    print('Create Deep AR Estimator')
+    print('Create Implict Quantile Deep AR Estimator')
     from pts.model import deepar
     from pts.modules.distribution_output import ImplicitQuantileOutput
     estimator = deepar.DeepAREstimator(
@@ -151,10 +156,13 @@ if __name__ == '__main__':
         trainer=trainer
     )
     estimators['iq_deep_ar'] = estimator
-    print('Create Implict Quantile Deep AR Estimator')
+    testors = {
+        'iq_deep_ar': SingleVariateBackTestor,
+        'deep_ar': SingleVariateBackTestor
+    }
     from backtest_applier import BackTestApplier
-    applier = BackTestApplier(SingleVariateBackTestor,
-                              file_path, prediction_length, eval_period, metric,
-                              estimators)
+    applier = BackTestApplier(testors, estimators,
+                              file_paths, prediction_length, eval_period, metric
+                              )
     applier.run()
     applier.show_result()

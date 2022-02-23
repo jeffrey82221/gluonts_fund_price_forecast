@@ -15,6 +15,7 @@ TODO:
     - [X] allow selection of file (certain fund) for performance visualization
 - [X] Inherent BackTestBase
 """
+import gc
 import torch
 from pts import Trainer
 from sharable_dataset import SharableListDataset, SharableMultiVariateDataset
@@ -99,6 +100,8 @@ class MultiVariateBackTestor(BackTestBase):
                     nav_table, train_end, test_end)
                 trains.append(train)
                 tests.append(test)
+                del train, test
+                gc.collect()
             return SharableMultiVariateDataset(
                 trains), SharableMultiVariateDataset(tests)
         except BaseException as e:
@@ -144,11 +147,14 @@ if __name__ == '__main__':
     estimators['time_grad'] = estimator
     print('Create Time Graph Estimator')
     from backtest_applier import BackTestApplier
-    applier = BackTestApplier(MultiVariateBackTestor,
+    testors = {
+        'time_grad': MultiVariateBackTestor
+    }
+    applier = BackTestApplier(testors,
+                              estimators,
                               file_paths, 
                               prediction_length, 
                               eval_period, 
-                              metric,
-                              estimators)
+                              metric)
     applier.run()
-    applier.show_result(0)
+    applier.show_result()
