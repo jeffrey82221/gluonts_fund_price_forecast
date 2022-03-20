@@ -1,6 +1,12 @@
 import os
+import inspect
+import sys
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
 from datetime import timedelta
-from fund_price_loader import load_nav_table
+from src.loader.fund_price_loader import load_nav_table
 def load_nav_data(file_path):
     nav_table = load_nav_table(file_path)
     return nav_table
@@ -50,7 +56,7 @@ def __split_date_generator(start_date, end_date, duration=7, period=1):
         yield split_date, period_end_date
         period_end_date = period_end_date + timedelta(days=period)
 
-from fund_price_loader import NAV_DIR
+from loader.fund_price_loader import NAV_DIR
 nav_files = os.listdir(NAV_DIR)
 file_paths = [
     os.path.join(

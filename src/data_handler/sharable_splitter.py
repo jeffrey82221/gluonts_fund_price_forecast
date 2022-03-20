@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sharable_dataset import SharableListDataset
+from src.data_handler.sharable_dataset import SharableListDataset
 
 
 class Splitter:

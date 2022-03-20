@@ -1,10 +1,16 @@
 '''
-NOTE: [ ] Organize of nav curves of multiple funds into the multi-timeseries objects offered by gluonts.
+Organize nav curves of multiple funds into the multi-timeseries objects offered by gluonts.
 '''
+import os
+import inspect
+import sys
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
 from gluonts.dataset.common import ListDataset
 import numpy as np
 import pandas as pd
-from sharable_dataset import SharableListDataset
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.dataset.repository.datasets import get_dataset
 

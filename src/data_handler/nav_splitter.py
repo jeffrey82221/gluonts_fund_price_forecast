@@ -1,5 +1,5 @@
 from datetime import timedelta
-from sharable_splitter import Splitter
+from src.data_handler.sharable_splitter import Splitter
 
 
 def split_nav_list_dataset_by_end_dates(nav_dataset, train_end, test_end):

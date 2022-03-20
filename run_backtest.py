@@ -1,5 +1,5 @@
 """
-Run BackTesting:
+Run BackTest: this is the entry point of backtesting. 
 
 TODO:
 - [X] Allow single-variate and multi-variate results to be plot in the same graph.
@@ -12,16 +12,19 @@ import warnings
 warnings.filterwarnings('ignore')
 from pts import Trainer
 import torch
-from backtest_applier import BackTestApplier
-from backtest_sglvar import SingleVariateBackTestor
-from backtest_mulvar import MultiVariateBackTestor
+from src.backtest.backtest_applier import BackTestApplier
+from src.backtest.backtest_sglvar import SingleVariateBackTestor
+from src.backtest.backtest_mulvar import MultiVariateBackTestor
+from src.loader.fund_price_loader import NAV_DIR
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 if __name__ == '__main__':
     import os
-    from fund_price_loader import NAV_DIR
+    """
+    XXX: [ ] move NAV_DIR to config.py 
+    """
     nav_files = os.listdir(NAV_DIR)
     # file_path = os.path.join(NAV_DIR, nav_files[800])
     file_paths = [

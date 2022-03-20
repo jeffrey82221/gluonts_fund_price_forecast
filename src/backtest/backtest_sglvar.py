@@ -1,5 +1,9 @@
 """
-Using Parallel Computing for BackTesting:
+SingleVariateBackTestor: 
+
+Backtestor for testing single-variate estimator. 
+
+Unlike MultiVariate Backtestor, this backtestor takes only one nav file. 
 
 NOTE:
 - [X] No Parallel Processing: 11.175463s
@@ -31,15 +35,15 @@ TODO:
     - [X] A multi-variate BackTest object
 - [X] Allow single-variate and multi-variate results to be plot in the same graph.
 """
-from backtest_base import BackTestBase
-from fund_price_loader import load_nav_table
-from nav_splitter import split_nav_list_dataset_by_end_dates
-from sharable_dataset import SharableListDataset
-from pts import Trainer
-import torch
-import logging
 import warnings
 warnings.filterwarnings('ignore')
+import logging
+import torch
+from pts import Trainer
+from src.loader.fund_price_loader import load_nav_table
+from src.data_handler.nav_splitter import split_nav_list_dataset_by_end_dates
+from src.data_handler.sharable_dataset import SharableListDataset
+from src.backtest.backtest_base import BackTestBase
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

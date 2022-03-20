@@ -1,17 +1,21 @@
 """
-Using Parallel Computing for BackTesting:
+BackTest Base object for backtest_mulvar/sglvar
+
+Here, we use parallel computing for backtesting of different time periods. 
+
+Each time periods has its own starting and ending date. 
 """
+import warnings
+# from utils import blockPrinting
+warnings.filterwarnings('ignore')
+import abc
+import logging
 import pandas as pd
-from evaluator import evaluation
 from functools import partial
 from billiard import cpu_count
 from billiard.pool import Pool
 from datetime import timedelta
-import abc
-import logging
-import warnings
-# from utils import blockPrinting
-warnings.filterwarnings('ignore')
+from src.evaluator import evaluation
 
 CPU_COUNT = cpu_count()
 VERBOSE = True

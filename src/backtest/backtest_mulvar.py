@@ -1,5 +1,9 @@
 """
-Adapt single variate backtesting to multi-variate backtesting
+MultiVariateBackTestor: 
+
+Backtestor for testing multi-variate estimator. 
+
+Unlike SingleVariateBacktestor, this backtestor takes multiple nav files. 
 
 TODO:
 - [X] read multiple fund navs.
@@ -15,22 +19,23 @@ TODO:
     - [X] allow selection of file (certain fund) for performance visualization
 - [X] Inherent BackTestBase
 """
-import gc
-import torch
-from pts import Trainer
-from sharable_dataset import SharableListDataset, SharableMultiVariateDataset
-from billiard import cpu_count
-from nav_splitter import split_nav_list_dataset_by_end_dates
-from fund_price_loader import load_nav_table
 import logging
 import warnings
 warnings.filterwarnings('ignore')
+import gc
+import torch
+from pts import Trainer
+from billiard import cpu_count
+from src.loader.fund_price_loader import load_nav_table
+from src.data_handler.nav_splitter import split_nav_list_dataset_by_end_dates
+from src.data_handler.sharable_dataset import SharableListDataset, SharableMultiVariateDataset
+from src.backtest.backtest_base import BackTestBase
 
 CPU_COUNT = cpu_count()
 VERBOSE = True
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-from backtest_base import BackTestBase
+
 
 class MultiVariateBackTestor(BackTestBase):
     def __init__(self, file_paths, prediction_length, 

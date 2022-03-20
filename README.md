@@ -2,7 +2,18 @@
 This project aims to predict the future price of mutual fund via GluonTS package.
 
 # TODO: 
-
+- [ ] Refactor the folder structure: 
+	- [X] Understand the purpose of each file
+	- [X] Move Similar files to the same folder
+		- [X] backtest folder contains all backtesting codes 
+		- [-] util folder contains files or tools that is used by many other codes
+		- [X] reference folder contains the notebooks and experiments
+    - [ ] XXX: Small Refactoring:
+        - [ ] Move fund_price_loader import out of backtest/ and import it in run_backtest.py and pass it to __init__ of backtest/ from there. 
+        - [ ] Move NAV_DIR to config.py 
+        - [ ] Change billiard Pool to Ray ActorPool (more stable and useful!)
+    - [ ] FIXME: Extension Enhancement:
+        - Allow time-dependent factors in backtest/ to be generalized (Because the frequency of tick may increase if binance api is adopted). 
 - [X] Price Prediction of Single Fund
     - [X] Load fund price csv file into Gluonts time series object. 
     - [X] Process the time series so that the missing prices of holiday can be interpolate.
@@ -22,13 +33,13 @@ This project aims to predict the future price of mutual fund via GluonTS package
         - [X] [Implicit Quantile Network](https://github.com/jeffrey82221/gluonts_fund_price_forecast/commit/bcd759538396c91fc3556900d2f69250fdd7a581)
         - [ ] Multivariate-Flow # Next-Up
         - [X] Time-Grad 
-- [ ] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
+- [X] Refactor the current architechture such that adapting to Multi-Variate mode can be easier to follow. 
     - [X] Seperate nav splitting methods from fund_price_loader.py to nav_splitter.py
-    - [ ] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced.
-        - [ ] A abstract BackTestBase object
-        - [ ] A basic BackTest object 
-        - [ ] A multi-variate BackTest object 
-        - [ ] An object allow both single&multi-variate models 
+    - [X] Refactor so that replication between backtesting and multi_variate_backtesting can be reduced.
+        - [X] A abstract BackTestBase object
+        - [X] A basic BackTest object 
+        - [X] A multi-variate BackTest object 
+        - [X] An object allow both single&multi-variate models 
 - [ ] Enhance the evaluation 
     - [X] adapt the evaluation scheme to more metrices: check implicit_quantile_network.py Line.52-67) (TODO: now-fbprophet is not working) 
     - [ ] Allow comparison of different models in a single plot

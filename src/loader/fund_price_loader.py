@@ -1,9 +1,7 @@
 from datetime import datetime
 import pandas as pd
-from nav_splitter import split_nav_dataframe
-from convertor import convert_to_list_dataset
-# from joblib import Memory
-# memory = Memory('./cachedir', verbose=0)
+from src.loader.convertor import convert_to_list_dataset
+from src.data_handler.nav_splitter import split_nav_dataframe
 
 NAV_DIR = '../fund_price_crawler/nav'
 
@@ -23,7 +21,6 @@ def load_dataset(file_path):
     return dataset
 
 
-# @memory.cache
 def load_nav_table(file_path):
     """
     Load the NAV csv into pandas DataFrame and fill the missing

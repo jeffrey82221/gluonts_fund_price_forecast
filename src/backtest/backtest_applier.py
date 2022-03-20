@@ -1,5 +1,5 @@
 """
-BackTest Applier
+BackTest Applier: Applying Backtestor to  Estimators
 
 - [X] FIXME: 
     - [X] fix the performance aggregation method due to that single-variate train_ends is different for each file. 
@@ -12,9 +12,9 @@ import pandas as pd
 from gluonts.dataset.util import to_pandas
 import matplotlib.pylab as plt
 from matplotlib import gridspec
-from fund_price_loader import load_dataset
-from backtest_sglvar import SingleVariateBackTestor
-from backtest_mulvar import MultiVariateBackTestor
+from src.loader.fund_price_loader import load_dataset
+from src.backtest.backtest_sglvar import SingleVariateBackTestor
+from src.backtest.backtest_mulvar import MultiVariateBackTestor
 
 class BackTestApplier:
     """
